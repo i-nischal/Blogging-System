@@ -1,0 +1,51 @@
+@import "tailwindcss";
+
+:root {
+  /* Primary Colors */
+  --color-primary: 15 23 42;
+  /* slate-900 - #0f172a */
+
+  /* Secondary Colors - Green */
+  --color-secondary: 22 101 52;
+  /* green-700 - #166534 */
+
+  /* Accent Colors - Blue */
+  --color-accent: 37 99 235;
+  /* blue-600 - #2563eb */
+
+  /* Background & Surface */
+  --color-background: 255 255 255;
+  /* white */
+  --color-surface: 249 250 251;
+  /* gray-50 - #f9fafb */
+
+  /* Text Colors */
+  --color-text-primary: 15 23 42;
+  /* slate-900 - #0f172a */
+  --color-text-secondary: 71 85 105;
+  /* slate-600 - #475569 */
+}
+
+@theme {
+  /* Use RGB values directly in classes */
+  --color-primary: rgb(var(--color-primary));
+  --color-secondary: rgb(var(--color-secondary));
+  --color-accent: rgb(var(--color-accent));
+  --color-background: rgb(var(--color-background));
+  --color-surface: rgb(var(--color-surface));
+}
+
+body {
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+    sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+body::-webkit-scrollbar {
+  display: none;
+}
