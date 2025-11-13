@@ -1,6 +1,6 @@
 import express from "express";
 import cors from "cors";
-import cookieParser from "cookie-parser"; // ← Add this
+import cookieParser from "cookie-parser";
 
 // Import routes
 import authRoutes from "./routes/authRoutes.js";
@@ -8,6 +8,7 @@ import blogRoutes from "./routes/blogRoutes.js";
 import commentRoutes from "./routes/commentRoutes.js";
 import likeRoutes from "./routes/likeRoutes.js";
 import uploadRoutes from "./routes/uploadRoutes.js";
+import dashboardRoutes from "./routes/dashboardRoutes.js";
 
 const app = express();
 
@@ -48,7 +49,7 @@ app.use("/api/blogs", blogRoutes);
 app.use("/api/comments", commentRoutes);
 app.use("/api/likes", likeRoutes);
 app.use("/api/upload", uploadRoutes);
-
+app.use("/api/dashboard", dashboardRoutes);
 // 404 handler
 app.use((req, res) => {
   res.status(404).json({

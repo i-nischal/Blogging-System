@@ -1,5 +1,5 @@
+import mongoose from "mongoose";
 import ApiResponse from "../utils/apiResponse.js";
-import { idValidation } from "../utils/validators.js"; // ← ADD THIS IMPORT
 
 /**
  * Generic validation middleware using Joi schemas
@@ -18,12 +18,16 @@ export const validate = (schema, property = "body") => {
 };
 
 /**
- * Validate MongoDB ObjectId
+ * Validate MongoDB ObjectId - SMART VERSION
  */
 export const validateId = (req, res, next) => {
-  const { error } = idValidation.validate({ id: req.params.id });
+  // Only validate if there's actually an ID parameter
+  if (!req.params.id) {
+    return next();
+  }
 
-  if (error) {
+  // Use mongoose's built-in validation (more reliable)
+  if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
     return res.status(400).json(ApiResponse.error("Invalid ID format"));
   }
 

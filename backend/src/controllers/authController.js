@@ -163,3 +163,65 @@ export const updateProfile = asyncHandler(async (req, res) => {
     res.status(404).json(ApiResponse.notFound("User not found"));
   }
 });
+
+/**
+ * @desc    Get user public profile
+ * @route   GET /api/auth/profile/:userId
+ * @access  Public
+ */
+export const getUserProfile = asyncHandler(async (req, res) => {
+  const user = await User.findById(req.params.userId).select(
+    "name email role createdAt"
+  );
+
+  if (!user) {
+    return res.status(404).json(ApiResponse.notFound("User not found"));
+  }
+
+  // Get user's published blogs count
+  const publishedBlogsCount = await Blog.countDocuments({
+    author: user._id,
+    status: "published",
+  });
+
+  // Get user's total likes received
+  const totalLikesReceived = await Blog.aggregate([
+    { $match: { author: user._id, status: "published" } },
+    { $group: { _id: null, total: { $sum: "$likeCount" } } },
+  ]);
+
+  const profile = {
+    ...user.toObject(),
+    publishedBlogsCount,
+    totalLikesReceived: totalLikesReceived[0]?.total || 0,
+  };
+
+  res.json(ApiResponse.success("User profile retrieved", profile));
+});
+
+/**
+ * @desc    Become a writer (permanent upgrade)
+ * @route   POST /api/auth/become-writer
+ * @access  Private (Reader only)
+ */
+export const becomeWriter = asyncHandler(async (req, res) => {
+  if (req.user.role === "writer") {
+    return res.status(400).json(ApiResponse.error("You are already a writer"));
+  }
+
+  // Permanent upgrade to writer
+  const user = await User.findByIdAndUpdate(
+    req.user._id,
+    { role: "writer" },
+    { new: true }
+  ).select("-password");
+
+  res.json(
+    ApiResponse.success("Congratulations! You are now a writer", {
+      _id: user._id,
+      name: user.name,
+      email: user.email,
+      role: user.role,
+    })
+  );
+});

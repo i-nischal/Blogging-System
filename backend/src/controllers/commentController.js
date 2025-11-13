@@ -12,6 +12,11 @@ export const createComment = asyncHandler(async (req, res) => {
   const { blogId } = req.params;
   const { content } = req.body;
 
+  // Check if content exists
+  if (!content) {
+    return res.status(400).json(ApiResponse.error('Comment content is required'));
+  }
+
   // Check if blog exists
   const blog = await Blog.findById(blogId);
   if (!blog) {
@@ -34,6 +39,7 @@ export const createComment = asyncHandler(async (req, res) => {
 
   res.status(201).json(ApiResponse.created('Comment added successfully', comment));
 });
+
 
 /**
  * @desc    Get all comments for a blog

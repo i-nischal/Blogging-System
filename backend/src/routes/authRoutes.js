@@ -6,6 +6,7 @@ import {
   getMe,
   requestUpgrade,
   updateProfile,
+  becomeWriter,
 } from "../controllers/authController.js";
 import { protect } from "../middleware/authMiddleware.js";
 import { validate } from "../middleware/validationMiddleware.js";
@@ -22,5 +23,5 @@ router.post("/logout", logout); // ← Logout is public (clears cookie)
 router.get("/me", protect, getMe);
 router.put("/profile", protect, validate(registerValidation), updateProfile);
 router.post("/upgrade-request", protect, requestUpgrade);
-
+router.post('/become-writer', protect, becomeWriter);
 export default router;

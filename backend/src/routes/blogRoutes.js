@@ -10,28 +10,27 @@ import {
   toggleLike,
 } from "../controllers/blogController.js";
 import { protect, authorize } from "../middleware/authMiddleware.js";
-import { validate } from "../middleware/validationMiddleware.js"; // Remove validateId import
+import { validate, validateId } from "../middleware/validationMiddleware.js";
 import { blogValidation, blogUpdateValidation } from "../utils/validators.js";
 
 const router = express.Router();
 
-// Public routes
+// ========== PUBLIC ROUTES ==========
 router.get("/", getBlogs);
-router.get("/:id", getBlog); // ← Remove validateId temporarily
 
-// Protected routes
+
 router.use(protect);
+router.get("/my-blogs", getMyBlogs); // protected route
+router.post("/:id/like", validateId, toggleLike);
 
-// Like route (any authenticated user)
-router.post("/:id/like", toggleLike); // ← Remove validateId temporarily
+// ========== PUBLIC (AFTER PROTECTED IF NEEDED) ==========
+router.get("/:id", validateId, getBlog);
 
-// Writer only routes
+// ========== WRITER-ONLY ROUTES ==========
 router.use(authorize("writer"));
-
 router.post("/", validate(blogValidation), createBlog);
-router.get("/my-blogs", getMyBlogs);
-router.put("/:id", validate(blogUpdateValidation), updateBlog); // ← Remove validateId temporarily
-router.delete("/:id", deleteBlog); // ← Remove validateId temporarily
-router.patch("/:id/publish", togglePublish); // ← Remove validateId temporarily
+router.put("/:id", validateId, validate(blogUpdateValidation), updateBlog);
+router.delete("/:id", validateId, deleteBlog);
+router.patch("/:id/publish", validateId, togglePublish);
 
 export default router;

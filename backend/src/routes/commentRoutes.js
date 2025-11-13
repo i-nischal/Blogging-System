@@ -9,24 +9,27 @@ import {
 } from "../controllers/commentController.js";
 import { protect } from "../middleware/authMiddleware.js";
 import { validate, validateId } from "../middleware/validationMiddleware.js";
-import { commentValidation, idValidation } from "../utils/validators.js";
+import { commentValidation } from "../utils/validators.js";
 
 const router = express.Router();
 
-// Public routes
+// ========== PUBLIC ROUTES ==========
 router.get("/blog/:blogId", validateId, getBlogComments);
+
+
+router.use(protect);
+router.get("/my-comments", getMyComments);
+
+// ========== DYNAMIC ROUTES ==========
 router.get("/:id", validateId, getComment);
 
-// Protected routes
-router.use(protect);
-
+// ========== PROTECTED ROUTES ==========
 router.post(
   "/blog/:blogId",
   validateId,
   validate(commentValidation),
   createComment
 );
-router.get("/my-comments", getMyComments);
 router.put("/:id", validateId, validate(commentValidation), updateComment);
 router.delete("/:id", validateId, deleteComment);
 
