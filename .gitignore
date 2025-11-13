@@ -1,0 +1,75 @@
+# =====================
+# Environment Variables
+# =====================
+.env
+.env.local
+.env.development
+.env.production
+.env.test
+
+# =====================
+# Dependencies
+# =====================
+node_modules/
+*/node_modules/
+
+# =====================
+# Build Outputs
+# =====================
+dist/
+build/
+*/dist/
+*/build/
+.next/
+out/
+
+# =====================
+# Logs
+# =====================
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+lerna-debug.log*
+*.log
+logs/
+
+# =====================
+# Runtime Data
+# =====================
+uploads/
+temp/
+tmp/
+*.tmp
+*.temp
+
+# =====================
+# IDE & Editor Files
+# =====================
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# =====================
+# OS Generated Files
+# =====================
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# =====================
+# Database Files (if any)
+# =====================
+*.sqlite
+*.db
+
+# =====================
+# Coverage Reports
+# =====================
+coverage/
+*.lcov
