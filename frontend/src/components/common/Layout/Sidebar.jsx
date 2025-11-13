@@ -79,7 +79,7 @@ const Sidebar = ({ isOpen, onClose, collapsed, onToggleCollapse }) => {
             </div>
             {!collapsed && (
               <span className="font-semibold text-gray-900 whitespace-nowrap">
-     JennieBlog
+                JennieBlog
               </span>
             )}
           </div>
