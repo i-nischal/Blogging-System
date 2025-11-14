@@ -14,6 +14,8 @@ import { useNavigate } from "react-router-dom";
 const WriteHeader = ({ content = "" }) => {
   const navigate = useNavigate();
   const [showPublishModal, setShowPublishModal] = useState(false);
+  const [title, setTitle] = useState("Untitled");
+  const [isEditingTitle, setIsEditingTitle] = useState(false);
   const [publishData, setPublishData] = useState({
     excerpt: "",
     tags: "",
@@ -21,27 +23,12 @@ const WriteHeader = ({ content = "" }) => {
     isPublishing: false,
   });
 
-  // Extract title from content (first h1 tag)
- 
-const extractTitle = () => {
-  if (!content) return 'Untitled';
-  
-  // Simple extraction - get text from first h1 tag
-  const tempDiv = document.createElement('div');
-  tempDiv.innerHTML = content;
-  const h1 = tempDiv.querySelector('h1');
-  const title = h1 ? h1.textContent.trim() : 'Untitled';
-  
-  return title || 'Untitled';
-};
-
   const handleSaveDraft = () => {
-    console.log("Saving draft...", { title: extractTitle(), content });
+    console.log("Saving draft...", { title, content });
   };
 
   const handlePublish = () => {
-    const title = extractTitle();
-    if (title === "Untitled" || !title) {
+    if (title === "Untitled" || !title.trim()) {
       alert("Please add a title to your blog post before publishing.");
       return;
     }
@@ -61,7 +48,23 @@ const extractTitle = () => {
     console.log("Opening preview...");
   };
 
-  const currentTitle = extractTitle();
+  const handleTitleDoubleClick = () => {
+    setIsEditingTitle(true);
+  };
+
+  const handleTitleBlur = () => {
+    setIsEditingTitle(false);
+    if (!title.trim()) {
+      setTitle("Untitled");
+    }
+  };
+
+  const handleTitleKeyDown = (e) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      setIsEditingTitle(false);
+    }
+  };
 
   return (
     <>
@@ -77,13 +80,26 @@ const extractTitle = () => {
                 <ChevronLeft className="h-4 w-4" />
               </button>
               <FileText className="h-5 w-5 text-green-600" />
-              <div className="max-w-xs">
-                <div
-                  className="text-sm font-medium text-gray-900 truncate"
-                  title={currentTitle}
-                >
-                  {currentTitle}
-                </div>
+              <div className="max-w-md">
+                {isEditingTitle ? (
+                  <input
+                    type="text"
+                    value={title}
+                    onChange={(e) => setTitle(e.target.value)}
+                    onBlur={handleTitleBlur}
+                    onKeyDown={handleTitleKeyDown}
+                    autoFocus
+                    className="text-sm font-medium text-gray-900 bg-white border border-green-500 rounded px-2 py-1 focus:outline-none focus:ring-2 focus:ring-green-500"
+                  />
+                ) : (
+                  <div
+                    onDoubleClick={handleTitleDoubleClick}
+                    className="text-sm font-medium text-gray-900 truncate px-2 py-1 cursor-text hover:bg-gray-50 rounded transition-colors"
+                    title="Double-click to edit title"
+                  >
+                    {title}
+                  </div>
+                )}
               </div>
             </div>
 
@@ -125,7 +141,7 @@ const extractTitle = () => {
                   Ready to Publish?
                 </h2>
                 <p className="text-sm text-gray-600 mt-1">
-                  "<span className="font-medium">{extractTitle()}</span>"
+                  "<span className="font-medium">{title}</span>"
                 </p>
               </div>
               <button
@@ -140,9 +156,11 @@ const extractTitle = () => {
             <div className="p-6 space-y-6">
               {/* Featured Image */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-3 items-center">
-                  <Upload className="h-4 w-4 mr-2" />
-                  Featured Image
+                <label className="block text-sm font-medium text-gray-700 mb-3">
+                  <div className="flex items-center">
+                    <Upload className="h-4 w-4 mr-2" />
+                    Featured Image
+                  </div>
                 </label>
                 <div className="flex items-center space-x-4">
                   <div className="flex-1">
@@ -168,9 +186,11 @@ const extractTitle = () => {
 
               {/* Excerpt */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-3 items-center">
-                  <MessageCircle className="h-4 w-4 mr-2" />
-                  Excerpt
+                <label className="block text-sm font-medium text-gray-700 mb-3">
+                  <div className="flex items-center">
+                    <MessageCircle className="h-4 w-4 mr-2" />
+                    Excerpt
+                  </div>
                 </label>
                 <textarea
                   placeholder="Brief description that will appear in blog listings..."
@@ -181,16 +201,18 @@ const extractTitle = () => {
                       excerpt: e.target.value,
                     }))
                   }
-                  rows="3"
+                  rows={3}
                   className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-green-500 focus:border-transparent resize-none"
                 />
               </div>
 
               {/* Tags */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-3 items-center">
-                  <Tag className="h-4 w-4 mr-2" />
-                  Tags
+                <label className="block text-sm font-medium text-gray-700 mb-3">
+                  <div className="flex items-center">
+                    <Tag className="h-4 w-4 mr-2" />
+                    Tags
+                  </div>
                 </label>
                 <input
                   type="text"
@@ -215,9 +237,8 @@ const extractTitle = () => {
                   Ready to share your thoughts?
                 </h3>
                 <p className="text-sm text-blue-700">
-                  Your blog "
-                  <span className="font-semibold">{extractTitle()}</span>" will
-                  be published and visible to your readers.
+                  Your blog "<span className="font-semibold">{title}</span>"
+                  will be published and visible to your readers.
                 </p>
               </div>
             </div>

@@ -59,7 +59,7 @@ const MyBlogs = () => {
   };
 
   const handleCreateNewBlog = () => {
-    navigate("/dashboard/create-blog");
+    navigate("/write");
   };
 
   const handleEditBlog = (blogId) => {

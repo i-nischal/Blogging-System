@@ -1,13 +1,31 @@
-import React from "react";
+import React, { useRef, useEffect } from "react";
 import { Editor } from "@tinymce/tinymce-react";
 
 const TinyMCEEditor = ({ content, onContentChange, height = "100%" }) => {
+  const editorRef = useRef(null);
+  const isInitialMount = useRef(true);
+
+  useEffect(() => {
+    // Only set content on initial mount if provided
+    if (isInitialMount.current) {
+      isInitialMount.current = false;
+    }
+  }, []);
+
+  const handleEditorChange = (newContent, editor) => {
+    // Call the parent's onChange handler
+    onContentChange(newContent);
+  };
+
   return (
     <div className="h-full">
       <Editor
         apiKey={import.meta.env.VITE_TinyMCE_API_KEY}
-        value={content}
-        onEditorChange={onContentChange}
+        onInit={(evt, editor) => {
+          editorRef.current = editor;
+        }}
+        initialValue=""
+        onEditorChange={handleEditorChange}
         init={{
           height: height,
           menubar: true,
@@ -67,23 +85,24 @@ const TinyMCEEditor = ({ content, onContentChange, height = "100%" }) => {
             }
           `,
 
-          // Simple configuration - no complex overrides
           automatic_uploads: true,
           images_upload_url: "/api/upload-image",
-
-          // Enable undo/redo properly
           browser_spellcheck: true,
-
           resize: false,
           branding: false,
+
+          // Prevent cursor jumping
+          setup: (editor) => {
+            editor.on("init", () => {
+              // Ensure editor doesn't reset cursor position
+              editor.on("SetContent", (e) => {
+                if (!e.initial) {
+                  e.preventDefault();
+                }
+              });
+            });
+          },
         }}
-        initialValue={
-          content ||
-          `
-          <h1>Your Blog Title</h1>
-          <p>Start writing your content here...</p>
-        `
-        }
       />
     </div>
   );
