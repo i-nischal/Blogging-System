@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from "react";
-import { NavLink } from "react-router-dom";
+import { Link, NavLink } from "react-router-dom";
 import {
   Home,
   FileText,
@@ -59,13 +59,15 @@ const Sidebar = ({ isOpen, onClose, collapsed, onToggleCollapse }) => {
       {/* Sidebar */}
       <div
         className={`
-        fixed inset-y-0 left-0 z-50 bg-white border-r border-gray-200 
-        transform transition-all duration-300 ease-in-out 
-        flex flex-col
-        lg:static lg:inset-0 lg:translate-x-0
-        ${isOpen ? "translate-x-0 w-64" : "-translate-x-full lg:translate-x-0"}
-        ${collapsed ? "lg:w-20" : "lg:w-64"}
-      `}
+  fixed inset-y-0 left-0 z-50 bg-white border-r border-gray-200 
+  transform transition-all duration-300 ease-in-out 
+  flex flex-col
+  lg:static lg:inset-0 lg:translate-x-0
+  ${isOpen ? "translate-x-0 w-64" : "-translate-x-full lg:translate-x-0"}
+  ${collapsed ? "lg:w-20" : "lg:w-64"}
+  h-screen // Add this
+  overflow-hidden // Add this to prevent sidebar scrolling
+`}
       >
         {/* Header - Fixed logo size */}
         <div className="flex items-center justify-between h-16 px-4 border-b border-gray-200">
@@ -75,8 +77,11 @@ const Sidebar = ({ isOpen, onClose, collapsed, onToggleCollapse }) => {
             }`}
           >
             <div className="w-10 h-10 bg-green-600 rounded-lg flex items-center justify-center shrink-0">
-              <span className="text-white font-bold text-lg">J</span>
+              <Link to="/">
+                <span className="text-white font-bold text-lg">J</span>
+              </Link>
             </div>
+
             {!collapsed && (
               <span className="font-semibold text-gray-900 whitespace-nowrap">
                 JennieBlog
