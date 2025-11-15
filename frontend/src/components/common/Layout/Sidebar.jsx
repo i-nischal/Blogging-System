@@ -1,5 +1,6 @@
+// frontend/src/components/common/Layout/Sidebar.jsx
 import React, { useState, useRef, useEffect } from "react";
-import { Link, NavLink } from "react-router-dom";
+import { Link, NavLink, useNavigate } from "react-router-dom";
 import {
   Home,
   FileText,
@@ -12,8 +13,11 @@ import {
   ChevronLeft,
   ChevronRight,
 } from "lucide-react";
+import { useAuth } from "../../../contexts/AuthContext";
 
 const Sidebar = ({ isOpen, onClose, collapsed, onToggleCollapse }) => {
+  const { user, logout } = useAuth();
+  const navigate = useNavigate();
   const [isProfileDropdownOpen, setIsProfileDropdownOpen] = useState(false);
   const dropdownRef = useRef(null);
 
@@ -36,9 +40,10 @@ const Sidebar = ({ isOpen, onClose, collapsed, onToggleCollapse }) => {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  const handleLogout = () => {
-    console.log("Logging out...");
+  const handleLogout = async () => {
     setIsProfileDropdownOpen(false);
+    await logout();
+    navigate("/login");
   };
 
   const handleProfile = () => {
@@ -65,11 +70,11 @@ const Sidebar = ({ isOpen, onClose, collapsed, onToggleCollapse }) => {
   lg:static lg:inset-0 lg:translate-x-0
   ${isOpen ? "translate-x-0 w-64" : "-translate-x-full lg:translate-x-0"}
   ${collapsed ? "lg:w-20" : "lg:w-64"}
-  h-screen // Add this
-  overflow-hidden // Add this to prevent sidebar scrolling
+  h-screen
+  overflow-hidden
 `}
       >
-        {/* Header - Fixed logo size */}
+        {/* Header */}
         <div className="flex items-center justify-between h-16 px-4 border-b border-gray-200">
           <div
             className={`flex items-center ${
@@ -89,7 +94,6 @@ const Sidebar = ({ isOpen, onClose, collapsed, onToggleCollapse }) => {
             )}
           </div>
 
-          {/* Desktop Toggle & Mobile Close */}
           <div className="flex items-center space-x-2">
             <button
               onClick={onToggleCollapse}
@@ -134,7 +138,7 @@ const Sidebar = ({ isOpen, onClose, collapsed, onToggleCollapse }) => {
           </div>
         </nav>
 
-        {/* Bottom Section - Profile with Fixed Dropdown */}
+        {/* Bottom Section - Profile */}
         <div className="p-3 border-t border-gray-200">
           <div className="relative" ref={dropdownRef}>
             {/* Profile Avatar Button */}
@@ -151,22 +155,24 @@ const Sidebar = ({ isOpen, onClose, collapsed, onToggleCollapse }) => {
               {!collapsed && (
                 <div className="ml-3 flex-1 min-w-0 text-left">
                   <p className="text-sm font-medium text-gray-700 truncate">
-                    John Doe
+                    {user?.name || "User"}
                   </p>
-                  <p className="text-xs text-gray-500 truncate">View Profile</p>
+                  <p className="text-xs text-gray-500 truncate capitalize">
+                    {user?.role || "reader"}
+                  </p>
                 </div>
               )}
             </button>
 
-            {/* Dropdown Menu - Fixed positioning */}
+            {/* Dropdown Menu */}
             {isProfileDropdownOpen && (
               <div
                 className={`
                 absolute bg-white rounded-lg shadow-xl border border-gray-200 py-2 z-50 w-48
                 ${
                   collapsed
-                    ? "left-full ml-2 -top-28" // Moved higher (-top-28)
-                    : "left-3 right-3 -top-40" // Moved higher for expanded too
+                    ? "left-full ml-2 -top-28"
+                    : "left-3 right-3 -top-40"
                 }
               `}
               >

@@ -1,10 +1,23 @@
-import React, { useState } from "react";
-import { Link } from "react-router-dom";
+// frontend/src/pages/auth/Register.jsx
+import React, { useState, useEffect } from "react";
+import { Link, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import { Eye, EyeOff, Mail, Lock, User, ArrowLeft } from "lucide-react";
+import {
+  Eye,
+  EyeOff,
+  Mail,
+  Lock,
+  User,
+  ArrowLeft,
+  AlertCircle,
+} from "lucide-react";
 import Header from "../../components/common/Layout/Header";
+import { useAuth } from "../../contexts/AuthContext";
 
 const Register = () => {
+  const navigate = useNavigate();
+  const { register, isAuthenticated, isWriter } = useAuth();
+
   const [formData, setFormData] = useState({
     name: "",
     email: "",
@@ -13,18 +26,77 @@ const Register = () => {
   });
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [error, setError] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Redirect if already logged in
+  useEffect(() => {
+    if (isAuthenticated) {
+      if (isWriter) {
+        navigate("/dashboard");
+      } else {
+        navigate("/");
+      }
+    }
+  }, [isAuthenticated, isWriter, navigate]);
 
   const handleChange = (e) => {
     setFormData({
       ...formData,
       [e.target.name]: e.target.value,
     });
+    // Clear error when user types
+    if (error) setError("");
   };
 
-  const handleSubmit = (e) => {
+  const validateForm = () => {
+    if (formData.name.length < 2) {
+      setError("Name must be at least 2 characters long");
+      return false;
+    }
+    if (formData.password.length < 6) {
+      setError("Password must be at least 6 characters long");
+      return false;
+    }
+    if (formData.password !== formData.confirmPassword) {
+      setError("Passwords do not match");
+      return false;
+    }
+    return true;
+  };
+
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    console.log("Register attempt:", formData);
-    // TODO: Implement register logic
+    setError("");
+
+    // Validate form
+    if (!validateForm()) {
+      return;
+    }
+
+    setIsSubmitting(true);
+
+    try {
+      // Call register API through AuthContext
+      const result = await register({
+        name: formData.name,
+        email: formData.email,
+        password: formData.password,
+        role: "reader",
+      });
+
+      if (result.success) {
+        // Navigate to home after successful registration
+        navigate("/");
+      } else {
+        setError(result.error || "Registration failed. Please try again.");
+      }
+    } catch (err) {
+      setError("Network error. Please try again.");
+      console.error("Registration error:", err);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -59,6 +131,18 @@ const Register = () => {
               </p>
             </div>
 
+            {/* Error Alert */}
+            {error && (
+              <motion.div
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg flex items-start"
+              >
+                <AlertCircle className="h-5 w-5 text-red-600 mr-3 mt-0.5 shrink-0" />
+                <p className="text-sm text-red-800">{error}</p>
+              </motion.div>
+            )}
+
             {/* Register Form */}
             <form onSubmit={handleSubmit} className="space-y-6">
               {/* Name Field */}
@@ -78,7 +162,8 @@ const Register = () => {
                     required
                     value={formData.name}
                     onChange={handleChange}
-                    className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent transition-colors"
+                    disabled={isSubmitting}
+                    className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent transition-colors disabled:bg-gray-100 disabled:cursor-not-allowed"
                     placeholder="Enter your full name"
                   />
                 </div>
@@ -101,7 +186,8 @@ const Register = () => {
                     required
                     value={formData.email}
                     onChange={handleChange}
-                    className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent transition-colors"
+                    disabled={isSubmitting}
+                    className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent transition-colors disabled:bg-gray-100 disabled:cursor-not-allowed"
                     placeholder="Enter your email"
                   />
                 </div>
@@ -124,13 +210,15 @@ const Register = () => {
                     required
                     value={formData.password}
                     onChange={handleChange}
-                    className="w-full pl-10 pr-12 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent transition-colors"
+                    disabled={isSubmitting}
+                    className="w-full pl-10 pr-12 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent transition-colors disabled:bg-gray-100 disabled:cursor-not-allowed"
                     placeholder="Create a password"
                   />
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                    disabled={isSubmitting}
+                    className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 disabled:cursor-not-allowed"
                   >
                     {showPassword ? (
                       <EyeOff className="h-5 w-5" />
@@ -158,13 +246,15 @@ const Register = () => {
                     required
                     value={formData.confirmPassword}
                     onChange={handleChange}
-                    className="w-full pl-10 pr-12 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent transition-colors"
+                    disabled={isSubmitting}
+                    className="w-full pl-10 pr-12 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent transition-colors disabled:bg-gray-100 disabled:cursor-not-allowed"
                     placeholder="Confirm your password"
                   />
                   <button
                     type="button"
                     onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                    className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                    disabled={isSubmitting}
+                    className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 disabled:cursor-not-allowed"
                   >
                     {showConfirmPassword ? (
                       <EyeOff className="h-5 w-5" />
@@ -182,7 +272,8 @@ const Register = () => {
                   name="terms"
                   type="checkbox"
                   required
-                  className="h-4 w-4 text-green-600 focus:ring-green-500 border-gray-300 rounded"
+                  disabled={isSubmitting}
+                  className="h-4 w-4 text-green-600 focus:ring-green-500 border-gray-300 rounded disabled:cursor-not-allowed"
                 />
                 <label
                   htmlFor="terms"
@@ -202,9 +293,36 @@ const Register = () => {
               {/* Submit Button */}
               <button
                 type="submit"
-                className="w-full bg-green-600 text-white py-3 px-4 rounded-lg font-semibold hover:bg-green-700 focus:ring-2 focus:ring-green-500 focus:ring-offset-2 transition-colors"
+                disabled={isSubmitting}
+                className="w-full bg-green-600 text-white py-3 px-4 rounded-lg font-semibold hover:bg-green-700 focus:ring-2 focus:ring-green-500 focus:ring-offset-2 transition-colors disabled:bg-green-400 disabled:cursor-not-allowed flex items-center justify-center"
               >
-                Create account
+                {isSubmitting ? (
+                  <>
+                    <svg
+                      className="animate-spin -ml-1 mr-3 h-5 w-5 text-white"
+                      xmlns="http://www.w3.org/2000/svg"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                    >
+                      <circle
+                        className="opacity-25"
+                        cx="12"
+                        cy="12"
+                        r="10"
+                        stroke="currentColor"
+                        strokeWidth="4"
+                      ></circle>
+                      <path
+                        className="opacity-75"
+                        fill="currentColor"
+                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                      ></path>
+                    </svg>
+                    Creating account...
+                  </>
+                ) : (
+                  "Create account"
+                )}
               </button>
             </form>
 
