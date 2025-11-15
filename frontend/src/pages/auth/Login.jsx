@@ -1,14 +1,12 @@
-// frontend/src/pages/auth/Login.jsx
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { Eye, EyeOff, Mail, Lock, ArrowLeft, AlertCircle } from "lucide-react";
-import Header from "../../components/common/Layout/Header";
 import { useAuth } from "../../contexts/AuthContext";
 
 const Login = () => {
   const navigate = useNavigate();
-  const { login, isAuthenticated, isWriter } = useAuth();
+  const { login } = useAuth();
 
   const [formData, setFormData] = useState({
     email: "",
@@ -18,52 +16,52 @@ const Login = () => {
   const [error, setError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Redirect if already logged in
-  useEffect(() => {
-    if (isAuthenticated) {
-      if (isWriter) {
-        navigate("/dashboard");
-      } else {
-        navigate("/");
-      }
-    }
-  }, [isAuthenticated, isWriter, navigate]);
+  console.log("🔵 Login component rendered");
 
   const handleChange = (e) => {
     setFormData({
       ...formData,
       [e.target.name]: e.target.value,
     });
-    // Clear error when user types
     if (error) setError("");
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    
+    console.log("📤 Form submitted");
     setError("");
     setIsSubmitting(true);
 
     try {
-      // Call login API through AuthContext
+      console.log("🔐 Calling login API...");
       const result = await login({
         email: formData.email,
         password: formData.password,
       });
 
+      console.log("📥 Login result:", result);
+
       if (result.success) {
+        console.log("✅ Login successful, navigating...");
+        
         // Navigate based on user role
         const userRole = result.data.role;
+        
         if (userRole === "writer") {
-          navigate("/dashboard");
+          console.log("→ Redirecting to dashboard");
+          navigate("/dashboard", { replace: true });
         } else {
-          navigate("/");
+          console.log("→ Redirecting to home");
+          navigate("/", { replace: true });
         }
       } else {
+        console.log("❌ Login failed:", result.error);
         setError(result.error || "Invalid email or password.");
       }
     } catch (err) {
+      console.error("❌ Login exception:", err);
       setError("Network error. Please try again.");
-      console.error("Login error:", err);
     } finally {
       setIsSubmitting(false);
     }
@@ -71,7 +69,16 @@ const Login = () => {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <Header />
+      {/* Simple header without auth checks */}
+      <nav className="fixed top-0 left-0 right-0 bg-white border-b border-gray-200 z-50">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex justify-between items-center h-16">
+            <Link to="/" className="text-2xl font-bold text-gray-900">
+              JennieBlog
+            </Link>
+          </div>
+        </div>
+      </nav>
 
       <div className="flex min-h-screen pt-16">
         {/* Left Side - Form */}
@@ -171,31 +178,6 @@ const Login = () => {
                 </div>
               </div>
 
-              {/* Remember me & Forgot password */}
-              <div className="flex items-center justify-between">
-                <div className="flex items-center">
-                  <input
-                    id="remember-me"
-                    name="remember-me"
-                    type="checkbox"
-                    disabled={isSubmitting}
-                    className="h-4 w-4 text-green-600 focus:ring-green-500 border-gray-300 rounded disabled:cursor-not-allowed"
-                  />
-                  <label
-                    htmlFor="remember-me"
-                    className="ml-2 block text-sm text-gray-700"
-                  >
-                    Remember me
-                  </label>
-                </div>
-                <a
-                  href="#"
-                  className="text-sm text-green-600 hover:text-green-700"
-                >
-                  Forgot password?
-                </a>
-              </div>
-
               {/* Submit Button */}
               <button
                 type="submit"
@@ -247,7 +229,7 @@ const Login = () => {
           </motion.div>
         </div>
 
-        {/* Right Side - Illustration/Image */}
+        {/* Right Side - Illustration */}
         <div className="hidden lg:block flex-1 bg-linear-to-br from-green-50 to-blue-50">
           <div className="h-full flex items-center justify-center p-12">
             <div className="text-center">

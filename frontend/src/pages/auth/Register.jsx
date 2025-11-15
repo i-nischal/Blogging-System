@@ -1,5 +1,5 @@
 // frontend/src/pages/auth/Register.jsx
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import {
@@ -16,7 +16,7 @@ import { useAuth } from "../../contexts/AuthContext";
 
 const Register = () => {
   const navigate = useNavigate();
-  const { register, isAuthenticated, isWriter } = useAuth();
+  const { register, loading } = useAuth();
 
   const [formData, setFormData] = useState({
     name: "",
@@ -29,16 +29,7 @@ const Register = () => {
   const [error, setError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Redirect if already logged in
-  useEffect(() => {
-    if (isAuthenticated) {
-      if (isWriter) {
-        navigate("/dashboard");
-      } else {
-        navigate("/");
-      }
-    }
-  }, [isAuthenticated, isWriter, navigate]);
+  // ❌ REMOVED the problematic useEffect that was causing infinite redirects
 
   const handleChange = (e) => {
     setFormData({
@@ -86,8 +77,8 @@ const Register = () => {
       });
 
       if (result.success) {
-        // Navigate to home after successful registration
-        navigate("/");
+        // ✅ Navigate to home after successful registration
+        navigate("/", { replace: true });
       } else {
         setError(result.error || "Registration failed. Please try again.");
       }
@@ -98,6 +89,15 @@ const Register = () => {
       setIsSubmitting(false);
     }
   };
+
+  // Show loading spinner while checking initial auth
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-600"></div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-50">

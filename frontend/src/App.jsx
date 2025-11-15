@@ -1,4 +1,5 @@
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+// frontend/src/App.jsx
+import { BrowserRouter, Routes, Route, useLocation } from "react-router-dom";
 import { AuthProvider } from "./contexts/AuthContext";
 import Header from "./components/common/Layout/Header";
 import Home from "./pages/public/Home/Home";
@@ -12,16 +13,29 @@ import Comments from "./pages/dashboard/Comments/Comments";
 import Write from "./pages/dashboard/Write/Write";
 import WriteLayout from "./pages/dashboard/Write/WriteLayout";
 
+// Component to conditionally render Header
+function ConditionalHeader() {
+  const location = useLocation();
+  const hideHeaderPaths = ['/dashboard', '/write', '/login', '/register'];
+  
+  // Don't show header on these paths or their sub-routes
+  const shouldHideHeader = hideHeaderPaths.some(path => 
+    location.pathname.startsWith(path)
+  );
+  
+  console.log("📍 Current path:", location.pathname, "Hide header:", shouldHideHeader);
+  
+  return shouldHideHeader ? null : <Header />;
+}
+
 function App() {
+  console.log("🚀 App component mounted");
+  
   return (
     <AuthProvider>
       <BrowserRouter>
-        {/* Header shows on all pages except dashboard and write */}
-        <Routes>
-          <Route path="/dashboard/*" element={null} />
-          <Route path="/write/*" element={null} />
-          <Route path="*" element={<Header />} />
-        </Routes>
+        {/* Conditional Header - won't render on auth pages */}
+        <ConditionalHeader />
 
         {/* Main Routes */}
         <Routes>
