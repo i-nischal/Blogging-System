@@ -8,6 +8,7 @@ import {
   getMyBlogs,
   togglePublish,
   toggleLike,
+  getBlogStats,
 } from "../controllers/blogController.js";
 import { protect, authorize } from "../middleware/authMiddleware.js";
 import { validate, validateId } from "../middleware/validationMiddleware.js";
@@ -17,7 +18,6 @@ const router = express.Router();
 
 // ========== PUBLIC ROUTES ==========
 router.get("/", getBlogs);
-
 
 router.use(protect);
 router.get("/my-blogs", getMyBlogs); // protected route
@@ -32,5 +32,5 @@ router.post("/", validate(blogValidation), createBlog);
 router.put("/:id", validateId, validate(blogUpdateValidation), updateBlog);
 router.delete("/:id", validateId, deleteBlog);
 router.patch("/:id/publish", validateId, togglePublish);
-
+router.get("/stats", getBlogStats);
 export default router;

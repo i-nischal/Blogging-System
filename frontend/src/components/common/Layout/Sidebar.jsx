@@ -64,18 +64,20 @@ const Sidebar = ({ isOpen, onClose, collapsed, onToggleCollapse }) => {
       {/* Sidebar */}
       <div
         className={`
-  fixed inset-y-0 left-0 z-50 bg-white border-r border-gray-200 
-  transform transition-all duration-300 ease-in-out 
-  flex flex-col
-  lg:static lg:inset-0 lg:translate-x-0
-  ${isOpen ? "translate-x-0 w-64" : "-translate-x-full lg:translate-x-0"}
-  ${collapsed ? "lg:w-20" : "lg:w-64"}
-  h-screen
-  overflow-hidden
-`}
+          fixed inset-y-0 left-0 z-50 bg-white border-r border-gray-200 
+          transform transition-all duration-300 ease-in-out 
+          flex flex-col
+          lg:static lg:inset-0 lg:translate-x-0
+          ${
+            isOpen ? "translate-x-0 w-64" : "-translate-x-full lg:translate-x-0"
+          }
+          ${collapsed ? "lg:w-20" : "lg:w-64"}
+          h-screen
+          overflow-hidden
+        `}
       >
         {/* Header */}
-        <div className="flex items-center justify-between h-16 px-4 border-b border-gray-200">
+        <div className="flex items-center justify-between h-16 px-4 border-b border-gray-200 shrink-0">
           <div
             className={`flex items-center ${
               collapsed ? "justify-center w-full" : "space-x-3"
@@ -125,21 +127,23 @@ const Sidebar = ({ isOpen, onClose, collapsed, onToggleCollapse }) => {
                 className={({ isActive }) =>
                   `flex items-center px-3 py-3 text-sm font-medium rounded-lg transition-colors ${
                     isActive
-                      ? "bg-green-50 text-green-700 border-r-2 border-green-600"
+                      ? "bg-green-50 text-green-700"
                       : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
                   } ${collapsed ? "justify-center" : ""}`
                 }
                 title={collapsed ? item.name : ""}
               >
-                <item.icon className={`h-5 w-5 ${collapsed ? "" : "mr-3"}`} />
-                {!collapsed && item.name}
+                <item.icon
+                  className={`h-5 w-5 ${collapsed ? "" : "mr-3"} shrink-0`}
+                />
+                {!collapsed && <span>{item.name}</span>}
               </NavLink>
             ))}
           </div>
         </nav>
 
         {/* Bottom Section - Profile */}
-        <div className="p-3 border-t border-gray-200">
+        <div className="p-3 border-t border-gray-200 shrink-0">
           <div className="relative" ref={dropdownRef}>
             {/* Profile Avatar Button */}
             <button
@@ -168,13 +172,13 @@ const Sidebar = ({ isOpen, onClose, collapsed, onToggleCollapse }) => {
             {isProfileDropdownOpen && (
               <div
                 className={`
-                absolute bg-white rounded-lg shadow-xl border border-gray-200 py-2 z-50 w-48
-                ${
-                  collapsed
-                    ? "left-full ml-2 -top-28"
-                    : "left-3 right-3 -top-40"
-                }
-              `}
+                  absolute bg-white rounded-lg shadow-xl border border-gray-200 py-2 z-50 w-48
+                  ${
+                    collapsed
+                      ? "left-full ml-2 bottom-0"
+                      : "left-3 right-3 bottom-full mb-2"
+                  }
+                `}
               >
                 {/* Profile Option */}
                 <button

@@ -3,7 +3,6 @@ import {
   TrendingUp,
   Users,
   Eye,
-  Clock,
   Download,
   Loader2,
   RefreshCw,
@@ -12,7 +11,6 @@ import {
   TrendingDown,
 } from "lucide-react";
 import dashboardAPI from "../../../services/api/dashboard";
-import blogsAPI from "../../../services/api/blogs";
 
 const Analytics = () => {
   const [loading, setLoading] = useState(true);
@@ -20,7 +18,6 @@ const Analytics = () => {
   const [timeRange, setTimeRange] = useState("7days");
   const [stats, setStats] = useState(null);
   const [monthlyData, setMonthlyData] = useState(null);
-  const [blogStats, setBlogStats] = useState(null);
 
   useEffect(() => {
     fetchAnalytics();
@@ -33,17 +30,14 @@ const Analytics = () => {
 
       console.log("🔄 Fetching analytics data...");
 
-      // Fetch all analytics data
-      const [dashboardResponse, monthlyResponse, blogStatsResponse] =
-        await Promise.all([
-          dashboardAPI.getWriterStats(),
-          dashboardAPI.getMonthlyStats(),
-          blogsAPI.getBlogStats(),
-        ]);
+      // Fetch only the working analytics endpoints
+      const [dashboardResponse, monthlyResponse] = await Promise.all([
+        dashboardAPI.getWriterStats(),
+        dashboardAPI.getMonthlyStats(),
+      ]);
 
       console.log("📊 Dashboard Stats:", dashboardResponse.data);
       console.log("📈 Monthly Stats:", monthlyResponse.data);
-      console.log("📝 Blog Stats:", blogStatsResponse.data);
 
       if (dashboardResponse.data.success) {
         setStats(dashboardResponse.data.data);
@@ -51,10 +45,6 @@ const Analytics = () => {
 
       if (monthlyResponse.data.success) {
         setMonthlyData(monthlyResponse.data.data);
-      }
-
-      if (blogStatsResponse.data.success) {
-        setBlogStats(blogStatsResponse.data.data);
       }
     } catch (err) {
       console.error("❌ Error fetching analytics:", err);
@@ -91,7 +81,6 @@ const Analytics = () => {
     window.URL.revokeObjectURL(url);
   };
 
-  // Calculate display metrics
   const calculateMetrics = () => {
     if (!stats?.overview) return null;
 
@@ -100,17 +89,14 @@ const Analytics = () => {
     const totalLikes = stats.overview.totalLikes || 0;
     const totalComments = stats.overview.totalComments || 0;
 
-    // Estimate unique visitors (roughly 65% of total views)
     const uniqueVisitors = Math.round(totalViews * 0.65);
 
-    // Calculate engagement rate
     const totalEngagement = totalLikes + totalComments;
     const engagementRate =
       totalViews > 0
         ? ((totalEngagement / totalViews) * 100).toFixed(1)
         : "0.0";
 
-    // Average views per blog
     const avgViewsPerBlog =
       totalBlogs > 0 ? Math.round(totalViews / totalBlogs) : 0;
 

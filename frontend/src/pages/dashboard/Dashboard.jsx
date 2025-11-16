@@ -21,19 +21,19 @@ const Dashboard = () => {
         onToggleCollapse={handleToggleCollapse}
       />
 
-      {/* Main Content - Independent scrolling */}
-      <div className="flex-1 flex flex-col min-w-0">
+      {/* Main Content Area */}
+      <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
         {/* Dashboard Header - Fixed */}
         <div className="shrink-0">
           <DashboardHeader onMenuClick={() => setSidebarOpen(true)} />
         </div>
 
-        {/* Page Content - Scrollable area only */}
-        <div className="flex-1 overflow-y-auto">
-          <div className="p-6">
+        {/* Page Content - Scrollable area */}
+        <main className="flex-1 overflow-y-auto">
+          <div className="p-4 sm:p-6 max-w-7xl mx-auto">
             <Outlet />
           </div>
-        </div>
+        </main>
       </div>
     </div>
   );
