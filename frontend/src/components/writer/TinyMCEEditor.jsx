@@ -3,14 +3,15 @@ import { Editor } from "@tinymce/tinymce-react";
 
 const TinyMCEEditor = ({ content, onContentChange, height = "100%" }) => {
   const editorRef = useRef(null);
-  const isInitialMount = useRef(true);
+  const hasInitialized = useRef(false);
 
+  // Set initial content when editor initializes
   useEffect(() => {
-    // Only set content on initial mount if provided
-    if (isInitialMount.current) {
-      isInitialMount.current = false;
+    if (editorRef.current && content && !hasInitialized.current) {
+      hasInitialized.current = true;
+      editorRef.current.setContent(content);
     }
-  }, []);
+  }, [content]);
 
   const handleEditorChange = (newContent, editor) => {
     // Call the parent's onChange handler
@@ -23,8 +24,13 @@ const TinyMCEEditor = ({ content, onContentChange, height = "100%" }) => {
         apiKey={import.meta.env.VITE_TinyMCE_API_KEY}
         onInit={(evt, editor) => {
           editorRef.current = editor;
+          // Set initial content if provided
+          if (content) {
+            editor.setContent(content);
+            hasInitialized.current = true;
+          }
         }}
-        initialValue=""
+        initialValue={content || ""}
         onEditorChange={handleEditorChange}
         init={{
           height: height,
@@ -94,12 +100,11 @@ const TinyMCEEditor = ({ content, onContentChange, height = "100%" }) => {
           // Prevent cursor jumping
           setup: (editor) => {
             editor.on("init", () => {
-              // Ensure editor doesn't reset cursor position
-              editor.on("SetContent", (e) => {
-                if (!e.initial) {
-                  e.preventDefault();
-                }
-              });
+              // Set initial content again to ensure it's loaded
+              if (content && !hasInitialized.current) {
+                editor.setContent(content);
+                hasInitialized.current = true;
+              }
             });
           },
         }}

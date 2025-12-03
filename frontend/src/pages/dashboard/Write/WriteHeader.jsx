@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   Save,
   Eye,
@@ -8,44 +8,149 @@ import {
   Upload,
   Tag,
   MessageCircle,
+  Loader2,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import blogsAPI from "../../../services/api/blogs";
 
-const WriteHeader = ({ content = "" }) => {
+const WriteHeader = ({
+  content = "",
+  title,
+  setTitle,
+  blogId = null,
+  blogData = null,
+}) => {
   const navigate = useNavigate();
   const [showPublishModal, setShowPublishModal] = useState(false);
-  const [title, setTitle] = useState("Untitled");
   const [isEditingTitle, setIsEditingTitle] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
   const [publishData, setPublishData] = useState({
     excerpt: "",
     tags: "",
     featuredImage: "",
+    status: "draft",
     isPublishing: false,
   });
 
-  const handleSaveDraft = () => {
-    console.log("Saving draft...", { title, content });
+  // Load existing blog data into publish modal
+  useEffect(() => {
+    if (blogData) {
+      setPublishData({
+        excerpt: blogData.excerpt || "",
+        tags: blogData.tags ? blogData.tags.join(", ") : "",
+        featuredImage: blogData.coverImage || "",
+        status: blogData.status || "draft",
+        isPublishing: false,
+      });
+    }
+  }, [blogData]);
+
+  const handleSaveDraft = async () => {
+    if (!title.trim() || title === "Untitled") {
+      alert("Please add a title before saving.");
+      return;
+    }
+
+    try {
+      setIsSaving(true);
+
+      const blogPayload = {
+        title: title.trim(),
+        content: content,
+        status: "draft",
+        tags: publishData.tags
+          .split(",")
+          .map((tag) => tag.trim())
+          .filter((tag) => tag),
+      };
+
+      let response;
+      if (blogId) {
+        // Update existing blog
+        console.log("📝 Updating blog:", blogId);
+        response = await blogsAPI.updateBlog(blogId, blogPayload);
+      } else {
+        // Create new blog
+        console.log("📝 Creating new blog");
+        response = await blogsAPI.createBlog(blogPayload);
+      }
+
+      if (response.data.success) {
+        alert(blogId ? "Draft saved successfully!" : "Blog created as draft!");
+
+        // If creating new blog, redirect to edit mode
+        if (!blogId && response.data.data._id) {
+          navigate(`/write/${response.data.data._id}`, { replace: true });
+        }
+      }
+    } catch (err) {
+      console.error("❌ Error saving draft:", err);
+      alert(err.response?.data?.message || "Failed to save draft");
+    } finally {
+      setIsSaving(false);
+    }
   };
 
-  const handlePublish = () => {
-    if (title === "Untitled" || !title.trim()) {
+  const handlePublish = async () => {
+    if (!title.trim() || title === "Untitled") {
       alert("Please add a title to your blog post before publishing.");
       return;
     }
 
-    setPublishData((prev) => ({ ...prev, isPublishing: true }));
-    console.log("Publishing...", { title, ...publishData, content });
+    if (!content || content.trim().length < 50) {
+      alert("Please add more content before publishing.");
+      return;
+    }
 
-    // Simulate publishing
-    setTimeout(() => {
+    try {
+      setPublishData((prev) => ({ ...prev, isPublishing: true }));
+
+      const blogPayload = {
+        title: title.trim(),
+        content: content,
+        excerpt: publishData.excerpt.trim() || content.substring(0, 200),
+        tags: publishData.tags
+          .split(",")
+          .map((tag) => tag.trim())
+          .filter((tag) => tag),
+        coverImage: publishData.featuredImage.trim(),
+        status: "published",
+      };
+
+      let response;
+      if (blogId) {
+        // Update existing blog
+        console.log("📤 Publishing existing blog:", blogId);
+        response = await blogsAPI.updateBlog(blogId, blogPayload);
+      } else {
+        // Create new blog
+        console.log("📤 Publishing new blog");
+        response = await blogsAPI.createBlog(blogPayload);
+      }
+
+      if (response.data.success) {
+        alert(
+          blogId
+            ? "Blog updated and published!"
+            : "Blog published successfully!"
+        );
+        setShowPublishModal(false);
+        navigate("/dashboard/my-blogs");
+      }
+    } catch (err) {
+      console.error("❌ Error publishing:", err);
+      alert(err.response?.data?.message || "Failed to publish blog");
       setPublishData((prev) => ({ ...prev, isPublishing: false }));
-      setShowPublishModal(false);
-      navigate("/dashboard/my-blogs");
-    }, 2000);
+    }
   };
 
   const handlePreview = () => {
-    console.log("Opening preview...");
+    if (blogId) {
+      // Open blog in new tab if it's published
+      window.open(`/blog/${blogId}`, "_blank");
+    } else {
+      alert("Please save as draft first to preview.");
+    }
   };
 
   const handleTitleDoubleClick = () => {
@@ -73,9 +178,9 @@ const WriteHeader = ({ content = "" }) => {
           <div className="flex justify-between items-center h-12">
             <div className="flex items-center space-x-3">
               <button
-                onClick={() => navigate("/dashboard")}
+                onClick={() => navigate("/dashboard/my-blogs")}
                 className="p-1.5 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded transition-colors"
-                title="Back to Dashboard"
+                title="Back to My Blogs"
               >
                 <ChevronLeft className="h-4 w-4" />
               </button>
@@ -101,36 +206,54 @@ const WriteHeader = ({ content = "" }) => {
                   </div>
                 )}
               </div>
+              {blogId && (
+                <span className="text-xs text-gray-500 bg-blue-50 px-2 py-1 rounded">
+                  Editing
+                </span>
+              )}
             </div>
 
             <div className="flex items-center space-x-2">
               <button
                 onClick={handleSaveDraft}
-                className="px-3 py-1.5 text-sm text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded transition-colors"
+                disabled={isSaving}
+                className="px-3 py-1.5 text-sm text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
               >
-                Save
+                {isSaving ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+                    Saving...
+                  </>
+                ) : (
+                  <>
+                    <Save className="h-4 w-4 mr-1" />
+                    Save Draft
+                  </>
+                )}
               </button>
 
-              <button
-                onClick={handlePreview}
-                className="px-3 py-1.5 text-sm text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded transition-colors flex items-center"
-              >
-                <Eye className="h-4 w-4 mr-1" />
-                Preview
-              </button>
+              {blogId && (
+                <button
+                  onClick={handlePreview}
+                  className="px-3 py-1.5 text-sm text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded transition-colors flex items-center"
+                >
+                  <Eye className="h-4 w-4 mr-1" />
+                  Preview
+                </button>
+              )}
 
               <button
                 onClick={() => setShowPublishModal(true)}
                 className="px-4 py-1.5 bg-green-600 text-white text-sm rounded hover:bg-green-700 transition-colors flex items-center"
               >
-                Publish
+                {blogId ? "Update" : "Publish"}
               </button>
             </div>
           </div>
         </div>
       </header>
 
-      {/* Publish Modal with Blur Background */}
+      {/* Publish Modal */}
       {showPublishModal && (
         <div className="fixed inset-0 bg-white/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto border border-gray-200 shadow-2xl">
@@ -138,7 +261,7 @@ const WriteHeader = ({ content = "" }) => {
             <div className="flex items-center justify-between p-6 border-b border-gray-200">
               <div>
                 <h2 className="text-xl font-semibold text-gray-900">
-                  Ready to Publish?
+                  {blogId ? "Update Blog" : "Ready to Publish?"}
                 </h2>
                 <p className="text-sm text-gray-600 mt-1">
                   "<span className="font-medium">{title}</span>"
@@ -162,26 +285,18 @@ const WriteHeader = ({ content = "" }) => {
                     Featured Image
                   </div>
                 </label>
-                <div className="flex items-center space-x-4">
-                  <div className="flex-1">
-                    <input
-                      type="text"
-                      placeholder="Paste image URL or upload..."
-                      value={publishData.featuredImage}
-                      onChange={(e) =>
-                        setPublishData((prev) => ({
-                          ...prev,
-                          featuredImage: e.target.value,
-                        }))
-                      }
-                      className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                    />
-                  </div>
-                  <button className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors flex items-center">
-                    <Upload className="h-4 w-4 mr-2" />
-                    Upload
-                  </button>
-                </div>
+                <input
+                  type="text"
+                  placeholder="Paste image URL..."
+                  value={publishData.featuredImage}
+                  onChange={(e) =>
+                    setPublishData((prev) => ({
+                      ...prev,
+                      featuredImage: e.target.value,
+                    }))
+                  }
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                />
               </div>
 
               {/* Excerpt */}
@@ -234,11 +349,14 @@ const WriteHeader = ({ content = "" }) => {
               {/* Publishing Info */}
               <div className="bg-blue-50 rounded-lg p-4 border border-blue-200">
                 <h3 className="text-sm font-medium text-blue-900 mb-2">
-                  Ready to share your thoughts?
+                  {blogId
+                    ? "Update your blog"
+                    : "Ready to share your thoughts?"}
                 </h3>
                 <p className="text-sm text-blue-700">
                   Your blog "<span className="font-semibold">{title}</span>"
-                  will be published and visible to your readers.
+                  will be {blogId ? "updated and" : ""} published and visible to
+                  your readers.
                 </p>
               </div>
             </div>
@@ -258,11 +376,11 @@ const WriteHeader = ({ content = "" }) => {
               >
                 {publishData.isPublishing ? (
                   <>
-                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                    Publishing...
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    {blogId ? "Updating..." : "Publishing..."}
                   </>
                 ) : (
-                  "Publish Now"
+                  <>{blogId ? "Update Now" : "Publish Now"}</>
                 )}
               </button>
             </div>
