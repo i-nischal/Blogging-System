@@ -3,6 +3,7 @@ import { BrowserRouter, Routes, Route, useLocation } from "react-router-dom";
 import { AuthProvider } from "./contexts/AuthContext";
 import Header from "./components/common/Layout/Header";
 import Home from "./pages/public/Home/Home";
+import BlogDetail from "./pages/public/BlogDetail/BlogDetail";
 import Login from "./pages/auth/Login";
 import Register from "./pages/auth/Register";
 import Dashboard from "./pages/dashboard/Dashboard";
@@ -16,21 +17,26 @@ import WriteLayout from "./pages/dashboard/Write/WriteLayout";
 // Component to conditionally render Header
 function ConditionalHeader() {
   const location = useLocation();
-  const hideHeaderPaths = ['/dashboard', '/write', '/login', '/register'];
-  
+  const hideHeaderPaths = ["/dashboard", "/write", "/login", "/register"];
+
   // Don't show header on these paths or their sub-routes
-  const shouldHideHeader = hideHeaderPaths.some(path => 
+  const shouldHideHeader = hideHeaderPaths.some((path) =>
     location.pathname.startsWith(path)
   );
-  
-  console.log("📍 Current path:", location.pathname, "Hide header:", shouldHideHeader);
-  
+
+  console.log(
+    "📍 Current path:",
+    location.pathname,
+    "Hide header:",
+    shouldHideHeader
+  );
+
   return shouldHideHeader ? null : <Header />;
 }
 
 function App() {
   console.log("🚀 App component mounted");
-  
+
   return (
     <AuthProvider>
       <BrowserRouter>
@@ -41,6 +47,7 @@ function App() {
         <Routes>
           {/* Public Routes */}
           <Route path="/" element={<Home />} />
+          <Route path="/blog/:id" element={<BlogDetail />} />
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
 

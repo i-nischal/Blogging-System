@@ -9,19 +9,22 @@ import {
   BarChart3,
   Calendar,
   TrendingDown,
+  Heart,
+  MessageCircle,
+  FileText,
+  Activity,
 } from "lucide-react";
 import dashboardAPI from "../../../services/api/dashboard";
 
 const Analytics = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [timeRange, setTimeRange] = useState("7days");
   const [stats, setStats] = useState(null);
   const [monthlyData, setMonthlyData] = useState(null);
 
   useEffect(() => {
     fetchAnalytics();
-  }, [timeRange]);
+  }, []);
 
   const fetchAnalytics = async () => {
     try {
@@ -30,7 +33,6 @@ const Analytics = () => {
 
       console.log("🔄 Fetching analytics data...");
 
-      // Fetch only the working analytics endpoints
       const [dashboardResponse, monthlyResponse] = await Promise.all([
         dashboardAPI.getWriterStats(),
         dashboardAPI.getMonthlyStats(),
@@ -81,72 +83,6 @@ const Analytics = () => {
     window.URL.revokeObjectURL(url);
   };
 
-  const calculateMetrics = () => {
-    if (!stats?.overview) return null;
-
-    const totalViews = stats.overview.totalViews || 0;
-    const totalBlogs = stats.overview.totalBlogs || 0;
-    const totalLikes = stats.overview.totalLikes || 0;
-    const totalComments = stats.overview.totalComments || 0;
-
-    const uniqueVisitors = Math.round(totalViews * 0.65);
-
-    const totalEngagement = totalLikes + totalComments;
-    const engagementRate =
-      totalViews > 0
-        ? ((totalEngagement / totalViews) * 100).toFixed(1)
-        : "0.0";
-
-    const avgViewsPerBlog =
-      totalBlogs > 0 ? Math.round(totalViews / totalBlogs) : 0;
-
-    return {
-      totalViews: totalViews.toLocaleString(),
-      uniqueVisitors: uniqueVisitors.toLocaleString(),
-      engagementRate: `${engagementRate}%`,
-      avgViewsPerBlog: avgViewsPerBlog.toLocaleString(),
-    };
-  };
-
-  const metrics = calculateMetrics();
-
-  const displayStats = metrics
-    ? [
-        {
-          name: "Total Views",
-          value: metrics.totalViews,
-          change: "+12.4%",
-          changeType: "positive",
-          icon: Eye,
-          color: "text-blue-600",
-        },
-        {
-          name: "Unique Visitors",
-          value: metrics.uniqueVisitors,
-          change: "+8.2%",
-          changeType: "positive",
-          icon: Users,
-          color: "text-green-600",
-        },
-        {
-          name: "Engagement Rate",
-          value: metrics.engagementRate,
-          change: "+5.1%",
-          changeType: "positive",
-          icon: TrendingUp,
-          color: "text-purple-600",
-        },
-        {
-          name: "Avg Views/Blog",
-          value: metrics.avgViewsPerBlog,
-          change: "+15.3%",
-          changeType: "positive",
-          icon: BarChart3,
-          color: "text-orange-600",
-        },
-      ]
-    : [];
-
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -187,22 +123,14 @@ const Analytics = () => {
       {/* Header */}
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Analytics</h1>
+          <h1 className="text-2xl font-bold text-gray-900">
+            Analytics Dashboard
+          </h1>
           <p className="mt-1 text-sm text-gray-600">
             Track your blog performance and audience engagement
           </p>
         </div>
         <div className="flex items-center space-x-3">
-          <select
-            value={timeRange}
-            onChange={(e) => setTimeRange(e.target.value)}
-            className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
-          >
-            <option value="7days">Last 7 days</option>
-            <option value="30days">Last 30 days</option>
-            <option value="90days">Last 90 days</option>
-            <option value="1year">Last year</option>
-          </select>
           <button
             onClick={handleExport}
             className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors flex items-center"
@@ -212,130 +140,215 @@ const Analytics = () => {
           </button>
           <button
             onClick={fetchAnalytics}
-            className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+            className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors flex items-center"
             title="Refresh"
           >
-            <RefreshCw className="h-4 w-4" />
+            <RefreshCw className="h-4 w-4 mr-2" />
+            Refresh
           </button>
         </div>
       </div>
 
-      {/* Overview Stats */}
-      <div className="bg-white rounded-lg border border-gray-200 p-6">
-        <h3 className="text-lg font-semibold text-gray-900 mb-4">
-          Overview Statistics
-        </h3>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-          <div className="text-center">
-            <div className="text-3xl font-bold text-gray-900">
-              {stats?.overview?.totalBlogs || 0}
+      {/* Main Stats Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        {/* Total Blogs */}
+        <div className="bg-white rounded-lg border border-gray-200 p-6 hover:shadow-lg transition-shadow">
+          <div className="flex items-center justify-between mb-4">
+            <div className="p-3 bg-blue-50 rounded-lg">
+              <FileText className="h-6 w-6 text-blue-600" />
             </div>
-            <div className="text-sm text-gray-600 mt-1">Total Blogs</div>
-            <div className="text-xs text-gray-500 mt-1">
-              {stats?.overview?.published || 0} published ·{" "}
+            <TrendingUp className="h-5 w-5 text-green-500" />
+          </div>
+          <h3 className="text-gray-600 text-sm font-medium mb-1">
+            Total Blogs
+          </h3>
+          <p className="text-3xl font-bold text-gray-900">
+            {stats?.overview?.totalBlogs || 0}
+          </p>
+          <div className="mt-2 flex items-center text-sm">
+            <span className="text-green-600 font-medium">
+              {stats?.overview?.published || 0} published
+            </span>
+            <span className="text-gray-400 mx-2">•</span>
+            <span className="text-yellow-600">
               {stats?.overview?.drafts || 0} drafts
-            </div>
+            </span>
           </div>
-          <div className="text-center">
-            <div className="text-3xl font-bold text-blue-600">
-              {(stats?.overview?.totalViews || 0).toLocaleString()}
+        </div>
+
+        {/* Total Views */}
+        <div className="bg-white rounded-lg border border-gray-200 p-6 hover:shadow-lg transition-shadow">
+          <div className="flex items-center justify-between mb-4">
+            <div className="p-3 bg-purple-50 rounded-lg">
+              <Eye className="h-6 w-6 text-purple-600" />
             </div>
-            <div className="text-sm text-gray-600 mt-1">Total Views</div>
-            <div className="text-xs text-gray-500 mt-1">All time</div>
+            <Activity className="h-5 w-5 text-purple-500" />
           </div>
-          <div className="text-center">
-            <div className="text-3xl font-bold text-red-600">
-              {(stats?.overview?.totalLikes || 0).toLocaleString()}
-            </div>
-            <div className="text-sm text-gray-600 mt-1">Total Likes</div>
-            <div className="text-xs text-gray-500 mt-1">All time</div>
+          <h3 className="text-gray-600 text-sm font-medium mb-1">
+            Total Views
+          </h3>
+          <p className="text-3xl font-bold text-gray-900">
+            {(stats?.overview?.totalViews || 0).toLocaleString()}
+          </p>
+          <div className="mt-2 text-sm text-gray-500">
+            Across all your blogs
           </div>
-          <div className="text-center">
-            <div className="text-3xl font-bold text-purple-600">
-              {(stats?.overview?.totalComments || 0).toLocaleString()}
+        </div>
+
+        {/* Total Likes */}
+        <div className="bg-white rounded-lg border border-gray-200 p-6 hover:shadow-lg transition-shadow">
+          <div className="flex items-center justify-between mb-4">
+            <div className="p-3 bg-red-50 rounded-lg">
+              <Heart className="h-6 w-6 text-red-600" />
             </div>
-            <div className="text-sm text-gray-600 mt-1">Total Comments</div>
-            <div className="text-xs text-gray-500 mt-1">All time</div>
+            <TrendingUp className="h-5 w-5 text-green-500" />
+          </div>
+          <h3 className="text-gray-600 text-sm font-medium mb-1">
+            Total Likes
+          </h3>
+          <p className="text-3xl font-bold text-gray-900">
+            {(stats?.overview?.totalLikes || 0).toLocaleString()}
+          </p>
+          <div className="mt-2 text-sm text-gray-500">Total engagement</div>
+        </div>
+
+        {/* Total Comments */}
+        <div className="bg-white rounded-lg border border-gray-200 p-6 hover:shadow-lg transition-shadow">
+          <div className="flex items-center justify-between mb-4">
+            <div className="p-3 bg-green-50 rounded-lg">
+              <MessageCircle className="h-6 w-6 text-green-600" />
+            </div>
+            <Activity className="h-5 w-5 text-green-500" />
+          </div>
+          <h3 className="text-gray-600 text-sm font-medium mb-1">
+            Total Comments
+          </h3>
+          <p className="text-3xl font-bold text-gray-900">
+            {(stats?.overview?.totalComments || 0).toLocaleString()}
+          </p>
+          <div className="mt-2 text-sm text-gray-500">
+            Community discussions
           </div>
         </div>
       </div>
 
-      {/* Key Metrics Cards */}
-      <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
-        {displayStats.map((stat) => (
-          <div
-            key={stat.name}
-            className="bg-white overflow-hidden shadow rounded-lg border border-gray-200"
-          >
-            <div className="p-5">
-              <div className="flex items-center">
-                <div className="shrink-0">
-                  <stat.icon className={`h-8 w-8 ${stat.color}`} />
-                </div>
-                <div className="ml-5 w-0 flex-1">
-                  <dl>
-                    <dt className="text-sm font-medium text-gray-500 truncate">
-                      {stat.name}
-                    </dt>
-                    <dd className="text-lg font-semibold text-gray-900">
-                      {stat.value}
-                    </dd>
-                  </dl>
-                </div>
-              </div>
-            </div>
-            <div
-              className={`px-5 py-3 ${
-                stat.changeType === "positive" ? "bg-green-50" : "bg-red-50"
-              }`}
-            >
-              <div className="text-sm flex items-center">
-                {stat.changeType === "positive" ? (
-                  <TrendingUp className="h-4 w-4 mr-1 text-green-600" />
-                ) : (
-                  <TrendingDown className="h-4 w-4 mr-1 text-red-600" />
-                )}
-                <span
-                  className={`font-medium ${
-                    stat.changeType === "positive"
-                      ? "text-green-800"
-                      : "text-red-800"
-                  }`}
-                >
-                  {stat.change}
-                </span>
-                <span className="text-gray-500 ml-1">vs last period</span>
-              </div>
-            </div>
-          </div>
-        ))}
-      </div>
-
       {/* Engagement Rate Card */}
-      <div className="bg-linear-to-br from-green-50 to-blue-50 rounded-lg border border-green-200 p-6">
+      <div className="bg-gradient-to-br from-green-50 to-blue-50 rounded-lg border border-green-200 p-6">
         <div className="flex items-center justify-between">
           <div>
-            <h3 className="text-lg font-semibold text-gray-900">
+            <h3 className="text-lg font-semibold text-gray-900 mb-2">
               Overall Engagement Rate
             </h3>
-            <p className="text-sm text-gray-600 mt-1">
+            <p className="text-sm text-gray-600">
               Percentage of viewers who interact with your content
             </p>
+            <div className="mt-4 flex items-center space-x-6">
+              <div>
+                <p className="text-xs text-gray-500">Avg per Blog</p>
+                <p className="text-lg font-semibold text-gray-900">
+                  {stats?.overview?.totalBlogs > 0
+                    ? Math.round(
+                        stats.overview.totalViews / stats.overview.totalBlogs
+                      )
+                    : 0}{" "}
+                  views
+                </p>
+              </div>
+              <div>
+                <p className="text-xs text-gray-500">Interaction Rate</p>
+                <p className="text-lg font-semibold text-gray-900">
+                  {stats?.overview?.engagementRate || "0%"}
+                </p>
+              </div>
+            </div>
           </div>
-          <div className="text-4xl font-bold text-green-600">
+          <div className="text-5xl font-bold text-green-600">
             {stats?.overview?.engagementRate || "0%"}
           </div>
         </div>
       </div>
 
+      {/* Top Performing Blogs */}
+      <div className="bg-white p-6 rounded-lg border border-gray-200">
+        <div className="flex items-center justify-between mb-6">
+          <h3 className="text-lg font-semibold text-gray-900">
+            🏆 Top Performing Blogs
+          </h3>
+          <BarChart3 className="h-5 w-5 text-gray-400" />
+        </div>
+
+        {stats?.recentActivity?.topPerformingBlogs?.length > 0 ? (
+          <div className="space-y-4">
+            {stats.recentActivity.topPerformingBlogs.map((blog, index) => {
+              const engagementRate =
+                blog.views > 0
+                  ? (
+                      ((blog.likeCount + blog.commentCount) / blog.views) *
+                      100
+                    ).toFixed(1)
+                  : 0;
+
+              return (
+                <div
+                  key={blog._id}
+                  className="flex items-center justify-between border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow"
+                >
+                  <div className="flex items-center space-x-4 flex-1">
+                    <div className="flex items-center justify-center w-10 h-10 bg-gradient-to-br from-green-400 to-blue-500 rounded-lg">
+                      <span className="text-white font-bold text-lg">
+                        #{index + 1}
+                      </span>
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <h4 className="font-medium text-gray-900 truncate">
+                        {blog.title}
+                      </h4>
+                      <div className="flex items-center space-x-4 mt-2 text-sm text-gray-600">
+                        <span className="flex items-center">
+                          <Eye className="h-4 w-4 mr-1" />
+                          {blog.views.toLocaleString()}
+                        </span>
+                        <span className="flex items-center">
+                          <Heart className="h-4 w-4 mr-1 text-red-500" />
+                          {blog.likeCount.toLocaleString()}
+                        </span>
+                        <span className="flex items-center">
+                          <MessageCircle className="h-4 w-4 mr-1 text-blue-500" />
+                          {blog.commentCount.toLocaleString()}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="text-right ml-4">
+                    <div className="text-2xl font-bold text-green-600">
+                      {engagementRate}%
+                    </div>
+                    <div className="text-xs text-gray-500">Engagement</div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        ) : (
+          <div className="text-center py-8">
+            <BarChart3 className="h-12 w-12 text-gray-300 mx-auto mb-3" />
+            <p className="text-gray-500">No blog data available yet</p>
+            <p className="text-sm text-gray-400 mt-1">
+              Publish blogs to see performance metrics
+            </p>
+          </div>
+        )}
+      </div>
+
       {/* Monthly Performance */}
       <div className="bg-white p-6 rounded-lg border border-gray-200">
-        <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center justify-between mb-6">
           <h3 className="text-lg font-semibold text-gray-900">
-            Monthly Performance
+            📅 Monthly Performance
           </h3>
           <Calendar className="h-5 w-5 text-gray-400" />
         </div>
+
         {monthlyData?.monthlyStats?.length > 0 ? (
           <div className="space-y-4">
             {monthlyData.monthlyStats.map((month, index) => {
@@ -370,23 +383,23 @@ const Analytics = () => {
                     </div>
                   </div>
                   <div className="grid grid-cols-3 gap-4 text-sm">
-                    <div className="bg-blue-50 rounded p-2">
-                      <div className="text-blue-600 font-medium">
+                    <div className="bg-blue-50 rounded p-3 text-center">
+                      <div className="text-blue-600 font-medium text-lg">
                         {month.totalViews.toLocaleString()}
                       </div>
-                      <div className="text-gray-600 text-xs">Views</div>
+                      <div className="text-gray-600 text-xs mt-1">Views</div>
                     </div>
-                    <div className="bg-red-50 rounded p-2">
-                      <div className="text-red-600 font-medium">
+                    <div className="bg-red-50 rounded p-3 text-center">
+                      <div className="text-red-600 font-medium text-lg">
                         {month.totalLikes.toLocaleString()}
                       </div>
-                      <div className="text-gray-600 text-xs">Likes</div>
+                      <div className="text-gray-600 text-xs mt-1">Likes</div>
                     </div>
-                    <div className="bg-purple-50 rounded p-2">
-                      <div className="text-purple-600 font-medium">
+                    <div className="bg-purple-50 rounded p-3 text-center">
+                      <div className="text-purple-600 font-medium text-lg">
                         {month.totalComments.toLocaleString()}
                       </div>
-                      <div className="text-gray-600 text-xs">Comments</div>
+                      <div className="text-gray-600 text-xs mt-1">Comments</div>
                     </div>
                   </div>
                 </div>
@@ -394,81 +407,11 @@ const Analytics = () => {
             })}
           </div>
         ) : (
-          <div className="h-64 bg-gray-50 rounded-lg flex items-center justify-center">
-            <div className="text-center">
-              <Calendar className="h-12 w-12 text-gray-300 mx-auto mb-3" />
-              <p className="text-gray-500 mb-2">
-                No monthly data available yet
-              </p>
-              <p className="text-sm text-gray-400">
-                Start publishing blogs to see monthly trends
-              </p>
-            </div>
-          </div>
-        )}
-      </div>
-
-      {/* Top Performing Blogs */}
-      <div className="bg-white p-6 rounded-lg border border-gray-200">
-        <h3 className="text-lg font-semibold text-gray-900 mb-4">
-          Top Performing Blogs
-        </h3>
-        {stats?.recentActivity?.topPerformingBlogs?.length > 0 ? (
-          <div className="space-y-3">
-            {stats.recentActivity.topPerformingBlogs.map((blog, index) => {
-              const engagementRate =
-                blog.views > 0
-                  ? (
-                      ((blog.likeCount + blog.commentCount) / blog.views) *
-                      100
-                    ).toFixed(1)
-                  : 0;
-
-              return (
-                <div
-                  key={blog._id}
-                  className="flex items-center justify-between border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow"
-                >
-                  <div className="flex items-center space-x-4 flex-1">
-                    <div className="flex items-center justify-center w-10 h-10 bg-linear-to-br from-green-400 to-blue-500 rounded-lg">
-                      <span className="text-white font-bold text-lg">
-                        #{index + 1}
-                      </span>
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <h4 className="font-medium text-gray-900 truncate">
-                        {blog.title}
-                      </h4>
-                      <div className="flex items-center space-x-4 mt-2 text-sm text-gray-600">
-                        <span className="flex items-center">
-                          <Eye className="h-4 w-4 mr-1" />
-                          {blog.views.toLocaleString()}
-                        </span>
-                        <span className="flex items-center">
-                          ❤️ {blog.likeCount.toLocaleString()}
-                        </span>
-                        <span className="flex items-center">
-                          💬 {blog.commentCount.toLocaleString()}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                  <div className="text-right ml-4">
-                    <div className="text-xl font-bold text-green-600">
-                      {engagementRate}%
-                    </div>
-                    <div className="text-xs text-gray-500">Engagement</div>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        ) : (
-          <div className="text-center py-8">
-            <BarChart3 className="h-12 w-12 text-gray-300 mx-auto mb-3" />
-            <p className="text-gray-500">No blog data available yet</p>
-            <p className="text-sm text-gray-400 mt-1">
-              Publish blogs to see performance metrics
+          <div className="text-center py-12 bg-gray-50 rounded-lg">
+            <Calendar className="h-12 w-12 text-gray-300 mx-auto mb-3" />
+            <p className="text-gray-500 mb-2">No monthly data available yet</p>
+            <p className="text-sm text-gray-400">
+              Start publishing blogs to see monthly trends
             </p>
           </div>
         )}
@@ -478,7 +421,7 @@ const Analytics = () => {
       {stats?.recentActivity?.recentBlogs?.length > 0 && (
         <div className="bg-white p-6 rounded-lg border border-gray-200">
           <h3 className="text-lg font-semibold text-gray-900 mb-4">
-            Recent Publications
+            📝 Recent Publications
           </h3>
           <div className="space-y-3">
             {stats.recentActivity.recentBlogs.map((blog) => (
@@ -493,8 +436,13 @@ const Analytics = () => {
                     <span className="capitalize">• {blog.status}</span>
                   </div>
                 </div>
-                <div className="text-right text-sm text-gray-600">
-                  <div>{blog.views} views</div>
+                <div className="text-right text-sm">
+                  <div className="text-gray-900 font-medium">
+                    {blog.views} views
+                  </div>
+                  <div className="text-gray-500 text-xs mt-1">
+                    {blog.likeCount} likes • {blog.commentCount} comments
+                  </div>
                 </div>
               </div>
             ))}

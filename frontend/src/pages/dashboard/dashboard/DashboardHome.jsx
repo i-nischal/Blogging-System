@@ -1,15 +1,45 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
-import { Plus, TrendingUp, MessageCircle, FileText } from "lucide-react";
-import DashboardStats from "../../../components/writer/DashboardStats";
+import {
+  Plus,
+  TrendingUp,
+  MessageCircle,
+  FileText,
+  Eye,
+  Heart,
+  Loader2,
+} from "lucide-react";
+import dashboardAPI from "../../../services/api/dashboard";
 
 const DashboardHome = () => {
+  const [stats, setStats] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetchDashboardStats();
+  }, []);
+
+  const fetchDashboardStats = async () => {
+    try {
+      setLoading(true);
+      const response = await dashboardAPI.getWriterStats();
+
+      if (response.data.success) {
+        setStats(response.data.data);
+      }
+    } catch (err) {
+      console.error("Error fetching dashboard stats:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const quickActions = [
     {
       icon: Plus,
       label: "Write New Blog",
       description: "Create a new blog post",
-      href: "/dashboard/my-blogs?new=true",
+      href: "/write",
       color: "bg-green-500",
     },
     {
@@ -35,6 +65,14 @@ const DashboardHome = () => {
     },
   ];
 
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <Loader2 className="h-8 w-8 animate-spin text-green-600" />
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
       {/* Welcome Section */}
@@ -46,7 +84,78 @@ const DashboardHome = () => {
       </div>
 
       {/* Stats */}
-      <DashboardStats />
+      <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="bg-white overflow-hidden shadow rounded-lg border border-gray-200">
+          <div className="px-4 py-5 sm:p-6">
+            <div className="flex items-center">
+              <div className="text-2xl mr-3">📝</div>
+              <div>
+                <dt className="text-sm font-medium text-gray-500 truncate">
+                  Total Blogs
+                </dt>
+                <dd className="mt-1 text-3xl font-semibold text-gray-900">
+                  {stats?.overview?.totalBlogs || 0}
+                </dd>
+              </div>
+            </div>
+            <div className="mt-2 flex items-center text-sm text-green-600">
+              <TrendingUp className="h-4 w-4 mr-1" />
+              {stats?.overview?.published || 0} published
+            </div>
+          </div>
+        </div>
+
+        <div className="bg-white overflow-hidden shadow rounded-lg border border-gray-200">
+          <div className="px-4 py-5 sm:p-6">
+            <div className="flex items-center">
+              <div className="text-2xl mr-3">👁️</div>
+              <div>
+                <dt className="text-sm font-medium text-gray-500 truncate">
+                  Total Views
+                </dt>
+                <dd className="mt-1 text-3xl font-semibold text-gray-900">
+                  {(stats?.overview?.totalViews || 0).toLocaleString()}
+                </dd>
+              </div>
+            </div>
+            <div className="mt-2 text-sm text-gray-500">Across all blogs</div>
+          </div>
+        </div>
+
+        <div className="bg-white overflow-hidden shadow rounded-lg border border-gray-200">
+          <div className="px-4 py-5 sm:p-6">
+            <div className="flex items-center">
+              <div className="text-2xl mr-3">💬</div>
+              <div>
+                <dt className="text-sm font-medium text-gray-500 truncate">
+                  Comments
+                </dt>
+                <dd className="mt-1 text-3xl font-semibold text-gray-900">
+                  {stats?.overview?.totalComments || 0}
+                </dd>
+              </div>
+            </div>
+            <div className="mt-2 text-sm text-gray-500">Total engagement</div>
+          </div>
+        </div>
+
+        <div className="bg-white overflow-hidden shadow rounded-lg border border-gray-200">
+          <div className="px-4 py-5 sm:p-6">
+            <div className="flex items-center">
+              <div className="text-2xl mr-3">📄</div>
+              <div>
+                <dt className="text-sm font-medium text-gray-500 truncate">
+                  Drafts
+                </dt>
+                <dd className="mt-1 text-3xl font-semibold text-gray-900">
+                  {stats?.overview?.drafts || 0}
+                </dd>
+              </div>
+            </div>
+            <div className="mt-2 text-sm text-gray-500">Unpublished posts</div>
+          </div>
+        </div>
+      </div>
 
       {/* Quick Actions */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -67,23 +176,81 @@ const DashboardHome = () => {
         ))}
       </div>
 
-      {/* Recent Activity & Drafts */}
+      {/* Recent Activity & Top Blogs */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div className="bg-white shadow rounded-lg p-6">
+        {/* Recent Blogs */}
+        <div className="bg-white shadow rounded-lg p-6 border border-gray-200">
           <h3 className="text-lg font-medium text-gray-900 mb-4">
-            Recent Activity
+            Recent Blogs
           </h3>
           <div className="space-y-3">
-            <p className="text-sm text-gray-600">No recent activity</p>
+            {stats?.recentActivity?.recentBlogs?.length > 0 ? (
+              stats.recentActivity.recentBlogs.map((blog) => (
+                <div
+                  key={blog._id}
+                  className="flex items-center justify-between p-3 bg-gray-50 rounded-lg"
+                >
+                  <div className="flex-1 min-w-0">
+                    <h4 className="text-sm font-medium text-gray-900 truncate">
+                      {blog.title}
+                    </h4>
+                    <p className="text-xs text-gray-500 mt-1 capitalize">
+                      {blog.status} •{" "}
+                      {new Date(blog.createdAt).toLocaleDateString()}
+                    </p>
+                  </div>
+                  <div className="text-sm text-gray-600 ml-4">
+                    {blog.views} views
+                  </div>
+                </div>
+              ))
+            ) : (
+              <p className="text-sm text-gray-600 text-center py-4">
+                No blogs yet
+              </p>
+            )}
           </div>
         </div>
 
-        <div className="bg-white shadow rounded-lg p-6">
+        {/* Top Performing */}
+        <div className="bg-white shadow rounded-lg p-6 border border-gray-200">
           <h3 className="text-lg font-medium text-gray-900 mb-4">
-            Recent Drafts
+            Top Performing
           </h3>
           <div className="space-y-3">
-            <p className="text-sm text-gray-600">No draft posts</p>
+            {stats?.recentActivity?.topPerformingBlogs?.length > 0 ? (
+              stats.recentActivity.topPerformingBlogs
+                .slice(0, 3)
+                .map((blog, index) => (
+                  <div
+                    key={blog._id}
+                    className="flex items-center space-x-3 p-3 bg-gray-50 rounded-lg"
+                  >
+                    <div className="flex items-center justify-center w-8 h-8 bg-green-600 rounded-full text-white font-bold text-sm">
+                      #{index + 1}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <h4 className="text-sm font-medium text-gray-900 truncate">
+                        {blog.title}
+                      </h4>
+                      <div className="flex items-center space-x-2 mt-1 text-xs text-gray-500">
+                        <span className="flex items-center">
+                          <Eye className="h-3 w-3 mr-1" />
+                          {blog.views}
+                        </span>
+                        <span className="flex items-center">
+                          <Heart className="h-3 w-3 mr-1" />
+                          {blog.likeCount}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                ))
+            ) : (
+              <p className="text-sm text-gray-600 text-center py-4">
+                Publish blogs to see top performers
+              </p>
+            )}
           </div>
         </div>
       </div>
