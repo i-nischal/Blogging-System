@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
   Save,
   Eye,
@@ -9,6 +9,8 @@ import {
   Tag,
   MessageCircle,
   Loader2,
+  Image as ImageIcon,
+  AlertCircle,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import blogsAPI from "../../../services/api/blogs";
@@ -21,27 +23,31 @@ const WriteHeader = ({
   blogData = null,
 }) => {
   const navigate = useNavigate();
+  const fileInputRef = useRef(null);
   const [showPublishModal, setShowPublishModal] = useState(false);
   const [isEditingTitle, setIsEditingTitle] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [imagePreview, setImagePreview] = useState(null);
+  const [uploadingImage, setUploadingImage] = useState(false);
   const [publishData, setPublishData] = useState({
-    excerpt: "",
     tags: "",
-    featuredImage: "",
+    coverImage: "",
     status: "draft",
     isPublishing: false,
   });
 
-  // Load existing blog data into publish modal
+  // Load existing blog data
   useEffect(() => {
     if (blogData) {
       setPublishData({
-        excerpt: blogData.excerpt || "",
         tags: blogData.tags ? blogData.tags.join(", ") : "",
-        featuredImage: blogData.coverImage || "",
+        coverImage: blogData.coverImage || "",
         status: blogData.status || "draft",
         isPublishing: false,
       });
+      if (blogData.coverImage) {
+        setImagePreview(blogData.coverImage);
+      }
     }
   }, [blogData]);
 
@@ -62,15 +68,14 @@ const WriteHeader = ({
           .split(",")
           .map((tag) => tag.trim())
           .filter((tag) => tag),
+        coverImage: publishData.coverImage,
       };
 
       let response;
       if (blogId) {
-        // Update existing blog
         console.log("📝 Updating blog:", blogId);
         response = await blogsAPI.updateBlog(blogId, blogPayload);
       } else {
-        // Create new blog
         console.log("📝 Creating new blog");
         response = await blogsAPI.createBlog(blogPayload);
       }
@@ -78,7 +83,6 @@ const WriteHeader = ({
       if (response.data.success) {
         alert(blogId ? "Draft saved successfully!" : "Blog created as draft!");
 
-        // If creating new blog, redirect to edit mode
         if (!blogId && response.data.data._id) {
           navigate(`/write/${response.data.data._id}`, { replace: true });
         }
@@ -108,22 +112,19 @@ const WriteHeader = ({
       const blogPayload = {
         title: title.trim(),
         content: content,
-        excerpt: publishData.excerpt.trim() || content.substring(0, 200),
         tags: publishData.tags
           .split(",")
           .map((tag) => tag.trim())
           .filter((tag) => tag),
-        coverImage: publishData.featuredImage.trim(),
+        coverImage: publishData.coverImage.trim(),
         status: "published",
       };
 
       let response;
       if (blogId) {
-        // Update existing blog
         console.log("📤 Publishing existing blog:", blogId);
         response = await blogsAPI.updateBlog(blogId, blogPayload);
       } else {
-        // Create new blog
         console.log("📤 Publishing new blog");
         response = await blogsAPI.createBlog(blogPayload);
       }
@@ -144,9 +145,58 @@ const WriteHeader = ({
     }
   };
 
+  const handleImageUpload = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    // Validate file type
+    if (!file.type.startsWith("image/")) {
+      alert("Please select an image file");
+      return;
+    }
+
+    // Validate file size (max 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      alert("Image size should be less than 5MB");
+      return;
+    }
+
+    try {
+      setUploadingImage(true);
+
+      // Convert to base64 for preview
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setImagePreview(reader.result);
+        setPublishData((prev) => ({
+          ...prev,
+          coverImage: reader.result,
+        }));
+      };
+      reader.readAsDataURL(file);
+
+      // TODO: Upload to your backend/cloud storage
+      // For now, we're using base64 (not recommended for production)
+      // In production, you should upload to Cloudinary, AWS S3, etc.
+      
+    } catch (err) {
+      console.error("Error uploading image:", err);
+      alert("Failed to upload image");
+    } finally {
+      setUploadingImage(false);
+    }
+  };
+
+  const handleRemoveImage = () => {
+    setImagePreview(null);
+    setPublishData((prev) => ({ ...prev, coverImage: "" }));
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
+  };
+
   const handlePreview = () => {
     if (blogId) {
-      // Open blog in new tab if it's published
       window.open(`/blog/${blogId}`, "_blank");
     } else {
       alert("Please save as draft first to preview.");
@@ -175,16 +225,18 @@ const WriteHeader = ({
     <>
       <header className="bg-white border-b border-gray-200">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-12">
+          <div className="flex justify-between items-center h-16">
             <div className="flex items-center space-x-3">
               <button
                 onClick={() => navigate("/dashboard/my-blogs")}
                 className="p-1.5 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded transition-colors"
                 title="Back to My Blogs"
               >
-                <ChevronLeft className="h-4 w-4" />
+                <ChevronLeft className="h-5 w-5" />
               </button>
               <FileText className="h-5 w-5 text-green-600" />
+              
+              {/* Editable Title */}
               <div className="max-w-md">
                 {isEditingTitle ? (
                   <input
@@ -194,18 +246,20 @@ const WriteHeader = ({
                     onBlur={handleTitleBlur}
                     onKeyDown={handleTitleKeyDown}
                     autoFocus
-                    className="text-sm font-medium text-gray-900 bg-white border border-green-500 rounded px-2 py-1 focus:outline-none focus:ring-2 focus:ring-green-500"
+                    placeholder="Blog Title"
+                    className="text-sm font-medium text-gray-900 bg-white border border-green-500 rounded px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-green-500 min-w-[200px]"
                   />
                 ) : (
                   <div
                     onDoubleClick={handleTitleDoubleClick}
-                    className="text-sm font-medium text-gray-900 truncate px-2 py-1 cursor-text hover:bg-gray-50 rounded transition-colors"
+                    className="text-sm font-medium text-gray-900 truncate px-3 py-1.5 cursor-text hover:bg-gray-50 rounded transition-colors min-w-[100px]"
                     title="Double-click to edit title"
                   >
                     {title}
                   </div>
                 )}
               </div>
+
               {blogId && (
                 <span className="text-xs text-gray-500 bg-blue-50 px-2 py-1 rounded">
                   Editing
@@ -217,16 +271,16 @@ const WriteHeader = ({
               <button
                 onClick={handleSaveDraft}
                 disabled={isSaving}
-                className="px-3 py-1.5 text-sm text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
+                className="px-4 py-2 text-sm text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
               >
                 {isSaving ? (
                   <>
-                    <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                     Saving...
                   </>
                 ) : (
                   <>
-                    <Save className="h-4 w-4 mr-1" />
+                    <Save className="h-4 w-4 mr-2" />
                     Save Draft
                   </>
                 )}
@@ -235,16 +289,16 @@ const WriteHeader = ({
               {blogId && (
                 <button
                   onClick={handlePreview}
-                  className="px-3 py-1.5 text-sm text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded transition-colors flex items-center"
+                  className="px-4 py-2 text-sm text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded-lg transition-colors flex items-center"
                 >
-                  <Eye className="h-4 w-4 mr-1" />
+                  <Eye className="h-4 w-4 mr-2" />
                   Preview
                 </button>
               )}
 
               <button
                 onClick={() => setShowPublishModal(true)}
-                className="px-4 py-1.5 bg-green-600 text-white text-sm rounded hover:bg-green-700 transition-colors flex items-center"
+                className="px-5 py-2 bg-green-600 text-white text-sm rounded-lg hover:bg-green-700 transition-colors flex items-center font-medium"
               >
                 {blogId ? "Update" : "Publish"}
               </button>
@@ -255,12 +309,12 @@ const WriteHeader = ({
 
       {/* Publish Modal */}
       {showPublishModal && (
-        <div className="fixed inset-0 bg-white/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto border border-gray-200 shadow-2xl">
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto shadow-2xl">
             {/* Modal Header */}
-            <div className="flex items-center justify-between p-6 border-b border-gray-200">
+            <div className="sticky top-0 bg-white flex items-center justify-between p-6 border-b border-gray-200 rounded-t-2xl">
               <div>
-                <h2 className="text-xl font-semibold text-gray-900">
+                <h2 className="text-2xl font-bold text-gray-900">
                   {blogId ? "Update Blog" : "Ready to Publish?"}
                 </h2>
                 <p className="text-sm text-gray-600 mt-1">
@@ -277,53 +331,99 @@ const WriteHeader = ({
 
             {/* Modal Content */}
             <div className="p-6 space-y-6">
-              {/* Featured Image */}
+              {/* Cover Image Upload */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-3">
+                <label className="block text-sm font-semibold text-gray-900 mb-3">
                   <div className="flex items-center">
-                    <Upload className="h-4 w-4 mr-2" />
-                    Featured Image
+                    <ImageIcon className="h-4 w-4 mr-2" />
+                    Cover Image
                   </div>
+                </label>
+
+                {imagePreview ? (
+                  <div className="relative">
+                    <img
+                      src={imagePreview}
+                      alt="Cover preview"
+                      className="w-full h-64 object-cover rounded-lg border-2 border-gray-200"
+                    />
+                    <button
+                      onClick={handleRemoveImage}
+                      className="absolute top-2 right-2 p-2 bg-red-600 text-white rounded-full hover:bg-red-700 transition-colors"
+                    >
+                      <X className="h-4 w-4" />
+                    </button>
+                  </div>
+                ) : (
+                  <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center hover:border-green-500 transition-colors">
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      accept="image/*"
+                      onChange={handleImageUpload}
+                      className="hidden"
+                      id="cover-image-upload"
+                    />
+                    <label
+                      htmlFor="cover-image-upload"
+                      className="cursor-pointer"
+                    >
+                      {uploadingImage ? (
+                        <div className="flex flex-col items-center">
+                          <Loader2 className="h-12 w-12 text-green-600 animate-spin mb-3" />
+                          <p className="text-sm text-gray-600">Uploading...</p>
+                        </div>
+                      ) : (
+                        <div className="flex flex-col items-center">
+                          <Upload className="h-12 w-12 text-gray-400 mb-3" />
+                          <p className="text-sm font-medium text-gray-900 mb-1">
+                            Click to upload cover image
+                          </p>
+                          <p className="text-xs text-gray-500">
+                            PNG, JPG, GIF up to 5MB
+                          </p>
+                        </div>
+                      )}
+                    </label>
+                  </div>
+                )}
+              </div>
+
+              {/* OR Divider */}
+              <div className="relative">
+                <div className="absolute inset-0 flex items-center">
+                  <div className="w-full border-t border-gray-300"></div>
+                </div>
+                <div className="relative flex justify-center text-sm">
+                  <span className="px-2 bg-white text-gray-500">OR</span>
+                </div>
+              </div>
+
+              {/* Image URL */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Image URL
                 </label>
                 <input
                   type="text"
-                  placeholder="Paste image URL..."
-                  value={publishData.featuredImage}
-                  onChange={(e) =>
+                  placeholder="https://example.com/image.jpg"
+                  value={publishData.coverImage}
+                  onChange={(e) => {
                     setPublishData((prev) => ({
                       ...prev,
-                      featuredImage: e.target.value,
-                    }))
-                  }
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                />
-              </div>
-
-              {/* Excerpt */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-3">
-                  <div className="flex items-center">
-                    <MessageCircle className="h-4 w-4 mr-2" />
-                    Excerpt
-                  </div>
-                </label>
-                <textarea
-                  placeholder="Brief description that will appear in blog listings..."
-                  value={publishData.excerpt}
-                  onChange={(e) =>
-                    setPublishData((prev) => ({
-                      ...prev,
-                      excerpt: e.target.value,
-                    }))
-                  }
-                  rows={3}
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-green-500 focus:border-transparent resize-none"
+                      coverImage: e.target.value,
+                    }));
+                    if (e.target.value) {
+                      setImagePreview(e.target.value);
+                    }
+                  }}
+                  className="w-full border border-gray-300 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-green-500 focus:border-transparent"
                 />
               </div>
 
               {/* Tags */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-3">
+                <label className="block text-sm font-semibold text-gray-900 mb-3">
                   <div className="flex items-center">
                     <Tag className="h-4 w-4 mr-2" />
                     Tags
@@ -339,40 +439,42 @@ const WriteHeader = ({
                       tags: e.target.value,
                     }))
                   }
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                  className="w-full border border-gray-300 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-green-500 focus:border-transparent"
                 />
                 <p className="text-xs text-gray-500 mt-2">
-                  Separate tags with commas
+                  Separate tags with commas (e.g., react, javascript, tutorial)
                 </p>
               </div>
 
-              {/* Publishing Info */}
-              <div className="bg-blue-50 rounded-lg p-4 border border-blue-200">
-                <h3 className="text-sm font-medium text-blue-900 mb-2">
-                  {blogId
-                    ? "Update your blog"
-                    : "Ready to share your thoughts?"}
-                </h3>
-                <p className="text-sm text-blue-700">
-                  Your blog "<span className="font-semibold">{title}</span>"
-                  will be {blogId ? "updated and" : ""} published and visible to
-                  your readers.
-                </p>
+              {/* Info Box */}
+              <div className="bg-linear-to-rrom-green-50 to-blue-50 rounded-lg p-5 border border-green-200">
+                <div className="flex items-start">
+                  <AlertCircle className="h-5 w-5 text-green-600 mr-3 shrink-0 mt-0.5" />
+                  <div>
+                    <h3 className="text-sm font-semibold text-gray-900 mb-1">
+                      {blogId ? "Update your blog" : "Ready to share?"}
+                    </h3>
+                    <p className="text-sm text-gray-700">
+                      Your blog will be {blogId ? "updated and" : ""} published
+                      immediately and visible to all readers.
+                    </p>
+                  </div>
+                </div>
               </div>
             </div>
 
             {/* Modal Footer */}
-            <div className="flex items-center justify-between p-6 border-t border-gray-200 bg-gray-50 rounded-b-2xl">
+            <div className="sticky bottom-0 bg-white flex items-center justify-between p-6 border-t border-gray-200 rounded-b-2xl">
               <button
                 onClick={() => setShowPublishModal(false)}
-                className="px-4 py-2 text-gray-700 hover:text-gray-900 transition-colors"
+                className="px-6 py-2.5 text-gray-700 hover:text-gray-900 font-medium transition-colors"
               >
                 Continue Editing
               </button>
               <button
                 onClick={handlePublish}
                 disabled={publishData.isPublishing}
-                className="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
+                className="px-8 py-2.5 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center font-medium shadow-lg shadow-green-600/20"
               >
                 {publishData.isPublishing ? (
                   <>
