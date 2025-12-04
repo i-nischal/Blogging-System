@@ -1,24 +1,20 @@
-// frontend/src/components/reader/BlogList.jsx
 import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import {
   Heart,
-  MessageCircle,
   Bookmark,
   MoreHorizontal,
-  TrendingUp,
   Clock,
   Loader2,
+  User,
 } from "lucide-react";
 import blogsAPI from "../../services/api/blogs";
-import { useAuth } from "../../contexts/AuthContext";
 
 const BlogList = () => {
-  const { isAuthenticated, user } = useAuth();
   const [blogs, setBlogs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [activeTab, setActiveTab] = useState("foryou"); // foryou or featured
+  const [activeTab, setActiveTab] = useState("foryou");
   const [pagination, setPagination] = useState({
     page: 1,
     limit: 10,
@@ -56,6 +52,19 @@ const BlogList = () => {
     }
   };
 
+  const toPlainText = (html = "") => {
+    const div = document.createElement("div");
+    div.innerHTML = html;
+    return div.textContent || div.innerText || "";
+  };
+
+  const safeExcerpt = (content = "", maxLength = 150) => {
+    const text = toPlainText(content);
+    return text.length > maxLength
+      ? text.substring(0, maxLength).trim() + "..."
+      : text;
+  };
+
   const formatDate = (dateString) => {
     const date = new Date(dateString);
     const now = new Date();
@@ -71,18 +80,10 @@ const BlogList = () => {
     });
   };
 
-  const calculateReadTime = (content) => {
-    if (!content) return 1;
-    const text = content.replace(/<[^>]*>/g, "");
-    const words = text.split(/\s+/).filter((word) => word.length > 0);
-    return Math.ceil(words.length / 200);
-  };
-
-  const getExcerpt = (content, maxLength = 150) => {
-    const text = content.replace(/<[^>]*>/g, "");
-    return text.length > maxLength
-      ? text.substring(0, maxLength) + "..."
-      : text;
+  const calculateReadTime = (content = "") => {
+    const text = toPlainText(content);
+    const words = text.split(/\s+/).filter(Boolean);
+    return Math.ceil(words.length / 200) || 1;
   };
 
   if (loading && blogs.length === 0) {
@@ -98,7 +99,7 @@ const BlogList = () => {
 
   return (
     <div className="min-h-screen bg-white">
-      {/* Tabs - For You / Featured */}
+      {/* Tabs */}
       <div className="border-b border-gray-200 sticky top-16 bg-white z-10">
         <div className="max-w-2xl mx-auto px-4">
           <div className="flex space-x-8">
@@ -136,7 +137,7 @@ const BlogList = () => {
 
         {blogs.length > 0 ? (
           <div className="space-y-8">
-            {blogs.map((blog, index) => (
+            {blogs.map((blog) => (
               <article
                 key={blog._id}
                 className="border-b border-gray-200 pb-8 last:border-b-0"
@@ -148,14 +149,13 @@ const BlogList = () => {
                     className="flex items-center space-x-2 hover:opacity-80"
                   >
                     <div className="h-5 w-5 bg-gray-300 rounded-full flex items-center justify-center">
-                      <span className="text-xs text-gray-600">
-                        {blog.author.name.charAt(0).toUpperCase()}
-                      </span>
+                      <User size={12} className="text-gray-600" />
                     </div>
                     <span className="text-sm text-gray-900 font-medium">
                       {blog.author.name}
                     </span>
                   </Link>
+
                   {blog.tags && blog.tags.length > 0 && (
                     <>
                       <span className="text-gray-400">in</span>
@@ -178,58 +178,30 @@ const BlogList = () => {
                       </h2>
                     </Link>
 
+                    {/* EXCERPT — CLEAN TEXT ONLY */}
                     <p className="text-gray-600 text-base mb-4 line-clamp-2 hidden md:block">
-                      {blog.excerpt || getExcerpt(blog.content)}
+                      {safeExcerpt(blog.excerpt || blog.content)}
                     </p>
 
                     {/* Meta Info */}
                     <div className="flex items-center justify-between text-sm text-gray-500">
                       <div className="flex items-center space-x-4">
-                        <span className="flex items-center">
-                          {formatDate(blog.createdAt)}
-                        </span>
+                        <span>{formatDate(blog.createdAt)}</span>
                         <span className="flex items-center">
                           <Clock className="h-3.5 w-3.5 mr-1" />
                           {calculateReadTime(blog.content)} min read
                         </span>
-                        {index === 0 && (
-                          <span className="flex items-center text-yellow-600">
-                            ⭐ Member-only
-                          </span>
-                        )}
                       </div>
 
                       {/* Action Icons */}
                       <div className="flex items-center space-x-3">
-                        <button
-                          className="hover:text-gray-900 transition-colors"
-                          title="Bookmark"
-                        >
+                        <button className="hover:text-gray-900 transition-colors">
                           <Bookmark className="h-5 w-5" />
                         </button>
-                        <button
-                          className="hover:text-gray-900 transition-colors"
-                          title="More options"
-                        >
+                        <button className="hover:text-gray-900 transition-colors">
                           <MoreHorizontal className="h-5 w-5" />
                         </button>
                       </div>
-                    </div>
-
-                    {/* Engagement Stats (Below Title on Mobile) */}
-                    <div className="flex items-center space-x-4 mt-3 text-sm text-gray-500 md:hidden">
-                      <span className="flex items-center">
-                        <TrendingUp className="h-4 w-4 mr-1" />
-                        {blog.views}
-                      </span>
-                      <span className="flex items-center">
-                        <Heart className="h-4 w-4 mr-1" />
-                        {blog.likeCount}
-                      </span>
-                      <span className="flex items-center">
-                        <MessageCircle className="h-4 w-4 mr-1" />
-                        {blog.commentCount}
-                      </span>
                     </div>
                   </div>
 
@@ -260,19 +232,17 @@ const BlogList = () => {
           </div>
         )}
 
-        {/* Load More / Pagination */}
-        {pagination.pages > 1 && (
+        {/* Load More */}
+        {pagination.pages > 1 && pagination.page < pagination.pages && (
           <div className="mt-12 text-center">
-            {pagination.page < pagination.pages && (
-              <button
-                onClick={() =>
-                  setPagination({ ...pagination, page: pagination.page + 1 })
-                }
-                className="text-green-600 hover:text-green-700 font-medium"
-              >
-                Load more stories
-              </button>
-            )}
+            <button
+              onClick={() =>
+                setPagination({ ...pagination, page: pagination.page + 1 })
+              }
+              className="text-green-600 hover:text-green-700 font-medium"
+            >
+              Load more stories
+            </button>
           </div>
         )}
       </div>
