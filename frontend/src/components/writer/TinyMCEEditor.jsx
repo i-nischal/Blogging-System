@@ -1,17 +1,8 @@
-import React, { useRef, useEffect } from "react";
+import React, { useRef } from "react";
 import { Editor } from "@tinymce/tinymce-react";
 
 const TinyMCEEditor = ({ content, onContentChange, height = "100%" }) => {
   const editorRef = useRef(null);
-  const hasInitialized = useRef(false);
-
-  // Set initial content when editor initializes
-  useEffect(() => {
-    if (editorRef.current && content && !hasInitialized.current) {
-      hasInitialized.current = true;
-      editorRef.current.setContent(content);
-    }
-  }, [content]);
 
   const handleEditorChange = (newContent, editor) => {
     // Call the parent's onChange handler
@@ -24,13 +15,8 @@ const TinyMCEEditor = ({ content, onContentChange, height = "100%" }) => {
         apiKey={import.meta.env.VITE_TinyMCE_API_KEY}
         onInit={(evt, editor) => {
           editorRef.current = editor;
-          // Set initial content if provided
-          if (content) {
-            editor.setContent(content);
-            hasInitialized.current = true;
-          }
         }}
-        initialValue={content || ""}
+        value={content}
         onEditorChange={handleEditorChange}
         init={{
           height: height,
@@ -71,6 +57,8 @@ const TinyMCEEditor = ({ content, onContentChange, height = "100%" }) => {
               margin: 0 auto;
               padding: 1in;
               background: white;
+              direction: ltr;
+              text-align: left;
             }
             h1 { 
               font-size: 2.5em; 
@@ -96,16 +84,11 @@ const TinyMCEEditor = ({ content, onContentChange, height = "100%" }) => {
           browser_spellcheck: true,
           resize: false,
           branding: false,
+          directionality: "ltr", // Force left-to-right
 
-          // Prevent cursor jumping
+          // CRITICAL: Don't interfere with content updates
           setup: (editor) => {
-            editor.on("init", () => {
-              // Set initial content again to ensure it's loaded
-              if (content && !hasInitialized.current) {
-                editor.setContent(content);
-                hasInitialized.current = true;
-              }
-            });
+            // Remove any setup that might interfere with content loading
           },
         }}
       />

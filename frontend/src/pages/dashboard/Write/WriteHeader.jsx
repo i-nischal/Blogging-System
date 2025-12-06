@@ -7,13 +7,13 @@ import {
   X,
   Upload,
   Tag,
-  MessageCircle,
   Loader2,
   Image as ImageIcon,
   AlertCircle,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import blogsAPI from "../../../services/api/blogs";
+import apiClient from "../../../services/api/base";
 
 const WriteHeader = ({
   content = "",
@@ -164,24 +164,37 @@ const WriteHeader = ({
     try {
       setUploadingImage(true);
 
-      // Convert to base64 for preview
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setImagePreview(reader.result);
+      // Create FormData
+      const formData = new FormData();
+      formData.append("image", file);
+
+      console.log("📤 Uploading image to server...");
+
+      // Upload to backend
+      const response = await apiClient.post("/upload/single", formData, {
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
+      });
+
+      console.log("✅ Upload response:", response.data);
+
+      if (response.data.success) {
+        const imageUrl = response.data.data.url;
+
+        // Set preview and save URL
+        setImagePreview(imageUrl);
         setPublishData((prev) => ({
           ...prev,
-          coverImage: reader.result,
+          coverImage: imageUrl,
         }));
-      };
-      reader.readAsDataURL(file);
 
-      // TODO: Upload to your backend/cloud storage
-      // For now, we're using base64 (not recommended for production)
-      // In production, you should upload to Cloudinary, AWS S3, etc.
-      
+        console.log("✅ Image uploaded successfully:", imageUrl);
+        alert("Image uploaded successfully!");
+      }
     } catch (err) {
-      console.error("Error uploading image:", err);
-      alert("Failed to upload image");
+      console.error("❌ Error uploading image:", err);
+      alert(err.response?.data?.message || "Failed to upload image");
     } finally {
       setUploadingImage(false);
     }
@@ -235,7 +248,7 @@ const WriteHeader = ({
                 <ChevronLeft className="h-5 w-5" />
               </button>
               <FileText className="h-5 w-5 text-green-600" />
-              
+
               {/* Editable Title */}
               <div className="max-w-md">
                 {isEditingTitle ? (
@@ -447,7 +460,7 @@ const WriteHeader = ({
               </div>
 
               {/* Info Box */}
-              <div className="bg-linear-to-rrom-green-50 to-blue-50 rounded-lg p-5 border border-green-200">
+              <div className="bg-linear-to-r from-green-50 to-blue-50 rounded-lg p-5 border border-green-200">
                 <div className="flex items-start">
                   <AlertCircle className="h-5 w-5 text-green-600 mr-3 shrink-0 mt-0.5" />
                   <div>
