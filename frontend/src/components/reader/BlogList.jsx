@@ -178,7 +178,7 @@ const BlogList = () => {
                       </h2>
                     </Link>
 
-                    {/* EXCERPT — CLEAN TEXT ONLY */}
+                    {/* Excerpt */}
                     <p className="text-gray-600 text-base mb-4 line-clamp-2 hidden md:block">
                       {safeExcerpt(blog.excerpt || blog.content)}
                     </p>
@@ -205,7 +205,7 @@ const BlogList = () => {
                     </div>
                   </div>
 
-                  {/* Thumbnail */}
+                  {/* Thumbnail - ALWAYS SHOW IF EXISTS */}
                   {blog.coverImage && (
                     <Link
                       to={`/blog/${blog._id}`}
@@ -215,6 +215,10 @@ const BlogList = () => {
                         src={blog.coverImage}
                         alt={blog.title}
                         className="w-full h-full object-cover rounded"
+                        onError={(e) => {
+                          console.error("Image failed to load:", blog.coverImage);
+                          e.target.style.display = "none";
+                        }}
                       />
                     </Link>
                   )}
