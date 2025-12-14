@@ -2,20 +2,38 @@ import Blog from "../models/Blog.js";
 import Like from "../models/Like.js";
 import ApiResponse from "../utils/apiResponse.js";
 import asyncHandler from "../middleware/asyncHandler.js";
+import { uploadMultipleToCloudinary } from "../utils/cloudinaryUtils.js";
 
 /**
  * @desc    Create a new blog
  * @route   POST /api/blogs
  * @access  Private (Writer only)
  */
+
 export const createBlog = asyncHandler(async (req, res) => {
   const { title, content, tags, status } = req.body;
+
+  let coverImage = null;
+
+  // validate required fields
+  if (!title || !content) {
+    return res
+      .status(400)
+      .json(ApiResponse.error("Title and content are required"));
+  }
+
+  // upload cover image if exists
+  if (req.file) {
+    const uploadResult = await uploadToCloudinary(req.file.buffer);
+    coverImage = uploadResult.secure_url;
+  }
 
   const blog = await Blog.create({
     title,
     content,
     tags,
     status,
+    coverImage,
     author: req.user._id,
   });
 
@@ -128,10 +146,43 @@ export const updateBlog = asyncHandler(async (req, res) => {
       .json(ApiResponse.forbidden("Not authorized to update this blog"));
   }
 
-  blog = await Blog.findByIdAndUpdate(req.params.id, req.body, {
+  // 🔍 DEBUG: Log update data
+  console.log("📥 Updating blog with data:", {
+    title: req.body.title,
+    coverImage: req.body.coverImage,
+    existingCoverImage: blog.coverImage,
+    tags: req.body.tags,
+    status: req.body.status,
+  });
+
+  // ✅ CRITICAL: Build update object - only include fields that are provided
+  const updateData = {};
+
+  if (req.body.title !== undefined) updateData.title = req.body.title;
+  if (req.body.content !== undefined) updateData.content = req.body.content;
+  if (req.body.tags !== undefined) updateData.tags = req.body.tags;
+  if (req.body.status !== undefined) updateData.status = req.body.status;
+
+  // ✅ Handle coverImage specially:
+  // - If coverImage is provided in request, use it (could be new URL or empty string to remove)
+  // - If coverImage is NOT in request body, keep the existing one
+  if (req.body.hasOwnProperty("coverImage")) {
+    updateData.coverImage = req.body.coverImage;
+  }
+
+  console.log("📝 Final update data:", updateData);
+
+  // ✅ Use findByIdAndUpdate with the prepared update object
+  blog = await Blog.findByIdAndUpdate(req.params.id, updateData, {
     new: true,
     runValidators: true,
   }).populate("author", "name email");
+
+  console.log("✅ Blog updated:", {
+    id: blog._id,
+    title: blog.title,
+    coverImage: blog.coverImage, // ✅ Verify it was updated/preserved
+  });
 
   res.json(ApiResponse.success("Blog updated successfully", blog));
 });

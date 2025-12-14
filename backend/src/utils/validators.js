@@ -19,7 +19,7 @@ export const blogValidation = Joi.object({
   content: Joi.string().min(10).required(),
   tags: Joi.array().items(Joi.string().trim()).default([]),
   status: Joi.string().valid("draft", "published").default("draft"),
-  coverImage: Joi.string().uri().allow("", null).optional(),
+  coverImage: Joi.string().uri().allow("", null).optional(), // ✅ Allow coverImage
 });
 
 export const blogUpdateValidation = Joi.object({
@@ -27,7 +27,7 @@ export const blogUpdateValidation = Joi.object({
   content: Joi.string().min(10),
   tags: Joi.array().items(Joi.string().trim()),
   status: Joi.string().valid("draft", "published"),
-  coverImage: Joi.string().uri().allow("", null).optional(), 
+  coverImage: Joi.string().uri().allow("", null).optional(), // ✅ Allow coverImage in updates
 });
 
 // Comment validation schemas

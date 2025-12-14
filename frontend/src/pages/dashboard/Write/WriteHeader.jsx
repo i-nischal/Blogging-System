@@ -27,29 +27,35 @@ const WriteHeader = ({
   const [showPublishModal, setShowPublishModal] = useState(false);
   const [isEditingTitle, setIsEditingTitle] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+
+  // ✅ CRITICAL FIX: Store image data OUTSIDE modal state
+  const [coverImageUrl, setCoverImageUrl] = useState("");
   const [imagePreview, setImagePreview] = useState(null);
   const [uploadingImage, setUploadingImage] = useState(false);
-  const [publishData, setPublishData] = useState({
-    tags: "",
-    coverImage: "",
-    status: "draft",
-    isPublishing: false,
-  });
+
+  // Modal-specific state
+  const [tags, setTags] = useState("");
+  const [isPublishing, setIsPublishing] = useState(false);
 
   // Load existing blog data
   useEffect(() => {
     if (blogData) {
-      setPublishData({
-        tags: blogData.tags ? blogData.tags.join(", ") : "",
-        coverImage: blogData.coverImage || "",
-        status: blogData.status || "draft",
-        isPublishing: false,
-      });
+      console.log("📥 Loading existing blog data:", blogData);
+      setTags(blogData.tags ? blogData.tags.join(", ") : "");
+
+      // ✅ CRITICAL: Only set coverImageUrl if it exists, otherwise keep current value
       if (blogData.coverImage) {
+        console.log("🖼️ Setting existing cover image:", blogData.coverImage);
+        setCoverImageUrl(blogData.coverImage);
         setImagePreview(blogData.coverImage);
       }
     }
   }, [blogData]);
+
+  // ✅ DEBUG: Monitor coverImageUrl changes
+  useEffect(() => {
+    console.log("🖼️ coverImageUrl state:", coverImageUrl);
+  }, [coverImageUrl]);
 
   const handleSaveDraft = async () => {
     if (!title.trim() || title === "Untitled") {
@@ -64,23 +70,25 @@ const WriteHeader = ({
         title: title.trim(),
         content: content,
         status: "draft",
-        tags: publishData.tags
+        tags: tags
           .split(",")
           .map((tag) => tag.trim())
           .filter((tag) => tag),
-        coverImage: publishData.coverImage,
+        // ✅ KEEP existing coverImage if present, don't overwrite with empty string
+        ...(coverImageUrl && { coverImage: coverImageUrl }),
       };
+
+      console.log("📤 Saving draft with payload:", blogPayload);
 
       let response;
       if (blogId) {
-        console.log("📝 Updating blog:", blogId);
         response = await blogsAPI.updateBlog(blogId, blogPayload);
       } else {
-        console.log("📝 Creating new blog");
         response = await blogsAPI.createBlog(blogPayload);
       }
 
       if (response.data.success) {
+        console.log("✅ Draft saved successfully");
         alert(blogId ? "Draft saved successfully!" : "Blog created as draft!");
 
         if (!blogId && response.data.data._id) {
@@ -107,29 +115,32 @@ const WriteHeader = ({
     }
 
     try {
-      setPublishData((prev) => ({ ...prev, isPublishing: true }));
+      setIsPublishing(true);
 
       const blogPayload = {
         title: title.trim(),
         content: content,
-        tags: publishData.tags
+        tags: tags
           .split(",")
           .map((tag) => tag.trim())
           .filter((tag) => tag),
-        coverImage: publishData.coverImage.trim(),
+        // ✅ KEEP existing coverImage if present, don't overwrite with empty string
+        ...(coverImageUrl && { coverImage: coverImageUrl }),
         status: "published",
       };
 
+      console.log("📤 Publishing with payload:", blogPayload);
+      console.log("🖼️ Cover Image URL:", coverImageUrl);
+
       let response;
       if (blogId) {
-        console.log("📤 Publishing existing blog:", blogId);
         response = await blogsAPI.updateBlog(blogId, blogPayload);
       } else {
-        console.log("📤 Publishing new blog");
         response = await blogsAPI.createBlog(blogPayload);
       }
 
       if (response.data.success) {
+        console.log("✅ Published successfully");
         alert(
           blogId
             ? "Blog updated and published!"
@@ -141,7 +152,8 @@ const WriteHeader = ({
     } catch (err) {
       console.error("❌ Error publishing:", err);
       alert(err.response?.data?.message || "Failed to publish blog");
-      setPublishData((prev) => ({ ...prev, isPublishing: false }));
+    } finally {
+      setIsPublishing(false);
     }
   };
 
@@ -149,13 +161,11 @@ const WriteHeader = ({
     const file = e.target.files[0];
     if (!file) return;
 
-    // Validate file type
     if (!file.type.startsWith("image/")) {
       alert("Please select an image file");
       return;
     }
 
-    // Validate file size (max 5MB)
     if (file.size > 5 * 1024 * 1024) {
       alert("Image size should be less than 5MB");
       return;
@@ -164,36 +174,27 @@ const WriteHeader = ({
     try {
       setUploadingImage(true);
 
-      // Create FormData
       const formData = new FormData();
       formData.append("image", file);
 
-      console.log("📤 Uploading image to server...");
+      console.log("📤 Uploading image...");
 
-      // Upload to backend
       const response = await apiClient.post("/upload/single", formData, {
-        headers: {
-          "Content-Type": "multipart/form-data",
-        },
+        headers: { "Content-Type": "multipart/form-data" },
       });
-
-      console.log("✅ Upload response:", response.data);
 
       if (response.data.success) {
         const imageUrl = response.data.data.url;
+        console.log("✅ Image uploaded:", imageUrl);
 
-        // Set preview and save URL
+        // ✅ CRITICAL: Store in persistent state
+        setCoverImageUrl(imageUrl);
         setImagePreview(imageUrl);
-        setPublishData((prev) => ({
-          ...prev,
-          coverImage: imageUrl,
-        }));
 
-        console.log("✅ Image uploaded successfully:", imageUrl);
         alert("Image uploaded successfully!");
       }
     } catch (err) {
-      console.error("❌ Error uploading image:", err);
+      console.error("❌ Upload error:", err);
       alert(err.response?.data?.message || "Failed to upload image");
     } finally {
       setUploadingImage(false);
@@ -201,10 +202,24 @@ const WriteHeader = ({
   };
 
   const handleRemoveImage = () => {
-    setImagePreview(null);
-    setPublishData((prev) => ({ ...prev, coverImage: "" }));
-    if (fileInputRef.current) {
-      fileInputRef.current.value = "";
+    if (
+      blogId &&
+      window.confirm(
+        "Are you sure you want to remove the cover image? This will permanently remove it from the blog."
+      )
+    ) {
+      setCoverImageUrl("");
+      setImagePreview(null);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = "";
+      }
+    } else if (!blogId) {
+      // For new blogs, just remove it without confirmation
+      setCoverImageUrl("");
+      setImagePreview(null);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = "";
+      }
     }
   };
 
@@ -216,17 +231,11 @@ const WriteHeader = ({
     }
   };
 
-  const handleTitleDoubleClick = () => {
-    setIsEditingTitle(true);
-  };
-
+  const handleTitleDoubleClick = () => setIsEditingTitle(true);
   const handleTitleBlur = () => {
     setIsEditingTitle(false);
-    if (!title.trim()) {
-      setTitle("Untitled");
-    }
+    if (!title.trim()) setTitle("Untitled");
   };
-
   const handleTitleKeyDown = (e) => {
     if (e.key === "Enter") {
       e.preventDefault();
@@ -243,13 +252,11 @@ const WriteHeader = ({
               <button
                 onClick={() => navigate("/dashboard/my-blogs")}
                 className="p-1.5 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded transition-colors"
-                title="Back to My Blogs"
               >
                 <ChevronLeft className="h-5 w-5" />
               </button>
               <FileText className="h-5 w-5 text-green-600" />
 
-              {/* Editable Title */}
               <div className="max-w-md">
                 {isEditingTitle ? (
                   <input
@@ -266,7 +273,7 @@ const WriteHeader = ({
                   <div
                     onDoubleClick={handleTitleDoubleClick}
                     className="text-sm font-medium text-gray-900 truncate px-3 py-1.5 cursor-text hover:bg-gray-50 rounded transition-colors min-w-[100px]"
-                    title="Double-click to edit title"
+                    title="Double-click to edit"
                   >
                     {title}
                   </div>
@@ -284,7 +291,7 @@ const WriteHeader = ({
               <button
                 onClick={handleSaveDraft}
                 disabled={isSaving}
-                className="px-4 py-2 text-sm text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
+                className="px-4 py-2 text-sm text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded-lg transition-colors disabled:opacity-50 flex items-center"
               >
                 {isSaving ? (
                   <>
@@ -324,7 +331,6 @@ const WriteHeader = ({
       {showPublishModal && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto shadow-2xl">
-            {/* Modal Header */}
             <div className="sticky top-0 bg-white flex items-center justify-between p-6 border-b border-gray-200 rounded-t-2xl">
               <div>
                 <h2 className="text-2xl font-bold text-gray-900">
@@ -342,7 +348,6 @@ const WriteHeader = ({
               </button>
             </div>
 
-            {/* Modal Content */}
             <div className="p-6 space-y-6">
               {/* Cover Image Upload */}
               <div>
@@ -366,6 +371,9 @@ const WriteHeader = ({
                     >
                       <X className="h-4 w-4" />
                     </button>
+                    <div className="mt-2 text-xs text-green-600 break-all">
+                      ✅ {coverImageUrl}
+                    </div>
                   </div>
                 ) : (
                   <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center hover:border-green-500 transition-colors">
@@ -390,7 +398,7 @@ const WriteHeader = ({
                         <div className="flex flex-col items-center">
                           <Upload className="h-12 w-12 text-gray-400 mb-3" />
                           <p className="text-sm font-medium text-gray-900 mb-1">
-                            Click to upload cover image
+                            Click to upload from device
                           </p>
                           <p className="text-xs text-gray-500">
                             PNG, JPG, GIF up to 5MB
@@ -400,38 +408,6 @@ const WriteHeader = ({
                     </label>
                   </div>
                 )}
-              </div>
-
-              {/* OR Divider */}
-              <div className="relative">
-                <div className="absolute inset-0 flex items-center">
-                  <div className="w-full border-t border-gray-300"></div>
-                </div>
-                <div className="relative flex justify-center text-sm">
-                  <span className="px-2 bg-white text-gray-500">OR</span>
-                </div>
-              </div>
-
-              {/* Image URL */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Image URL
-                </label>
-                <input
-                  type="text"
-                  placeholder="https://example.com/image.jpg"
-                  value={publishData.coverImage}
-                  onChange={(e) => {
-                    setPublishData((prev) => ({
-                      ...prev,
-                      coverImage: e.target.value,
-                    }));
-                    if (e.target.value) {
-                      setImagePreview(e.target.value);
-                    }
-                  }}
-                  className="w-full border border-gray-300 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                />
               </div>
 
               {/* Tags */}
@@ -445,17 +421,12 @@ const WriteHeader = ({
                 <input
                   type="text"
                   placeholder="technology, programming, web-development"
-                  value={publishData.tags}
-                  onChange={(e) =>
-                    setPublishData((prev) => ({
-                      ...prev,
-                      tags: e.target.value,
-                    }))
-                  }
+                  value={tags}
+                  onChange={(e) => setTags(e.target.value)}
                   className="w-full border border-gray-300 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-green-500 focus:border-transparent"
                 />
                 <p className="text-xs text-gray-500 mt-2">
-                  Separate tags with commas (e.g., react, javascript, tutorial)
+                  Separate tags with commas
                 </p>
               </div>
 
@@ -469,14 +440,14 @@ const WriteHeader = ({
                     </h3>
                     <p className="text-sm text-gray-700">
                       Your blog will be {blogId ? "updated and" : ""} published
-                      immediately and visible to all readers.
+                      immediately.
+                      {coverImageUrl && " ✓ Cover image included."}
                     </p>
                   </div>
                 </div>
               </div>
             </div>
 
-            {/* Modal Footer */}
             <div className="sticky bottom-0 bg-white flex items-center justify-between p-6 border-t border-gray-200 rounded-b-2xl">
               <button
                 onClick={() => setShowPublishModal(false)}
@@ -486,10 +457,10 @@ const WriteHeader = ({
               </button>
               <button
                 onClick={handlePublish}
-                disabled={publishData.isPublishing}
-                className="px-8 py-2.5 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center font-medium shadow-lg shadow-green-600/20"
+                disabled={isPublishing}
+                className="px-8 py-2.5 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50 flex items-center font-medium shadow-lg"
               >
-                {publishData.isPublishing ? (
+                {isPublishing ? (
                   <>
                     <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                     {blogId ? "Updating..." : "Publishing..."}
